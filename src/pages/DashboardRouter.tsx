@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 export default function DashboardRouter() {
   const { user } = useAuth();
 
-  if (user.role === "ADMIN") return <Navigate to="/dashboard/admin" />;
-  if (user.role === "STAFF") return <Navigate to="/dashboard/staff" />;
-  return <Navigate to="/dashboard/client" />;
+  if (user.role === "ADMIN") return <Navigate to="/admin/dashboard" />;
+  if (user.role === "STAFF") return <Navigate to="/staff/dashboard" />;
+  return <Navigate to="/client/dashboard" />;
 }

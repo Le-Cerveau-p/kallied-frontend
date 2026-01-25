@@ -1,4 +1,5 @@
 import { useState } from "react";
+import api from "../api/client";
 import {
   UserIcon,
   EnvelopeIcon,
@@ -6,6 +7,22 @@ import {
   EyeIcon,
   EyeSlashIcon,
 } from "@heroicons/react/24/outline";
+import {
+  Lock,
+  Bell,
+  Shield,
+  Eye,
+  EyeOff,
+  Smartphone,
+  Key,
+  Mail,
+  MessageSquare,
+  Loader,
+  CircleCheck,
+  TriangleAlert,
+  X,
+  Trash2,
+} from 'lucide-react';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -38,17 +55,29 @@ export default function Register() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setLoading(true);
 
     // Backend integration comes next
-    setTimeout(() => {
-      setLoading(false);
-      alert("Account created successfully");
-    }, 1000);
+    try {
+          await api.post("/auth/register", {
+            name: form.name,
+            email: form.email,
+            password: form.password,
+          });
+
+          window.location.href = "/login";
+           
+        } catch (err) {
+            setErrors({
+            api: err?.response?.data?.message || "Signup failed",
+            });
+        } finally {
+            setLoading(false);
+        }
   };
 
   return (
@@ -152,9 +181,20 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-800 to-blue-500 text-white py-2 rounded-lg"
-          >
-            {loading ? "Creating account..." : "Create Account"}
+            className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg font-semibold transition ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-800 to-blue-500 text-white hover:opacity-90"
+                   }`}
+            >
+              {loading ? (
+                  <>
+                    <Loader size={20} className="animate-spin" /> 
+                    Creating account...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
           </button>
         </form>
       </div>

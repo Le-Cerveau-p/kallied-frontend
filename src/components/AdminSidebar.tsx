@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -9,7 +9,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-} from 'lucide-react';
+  MessageSquare,
+  ShoppingCart,
+  FolderOpen,
+} from "lucide-react";
 
 interface MenuItem {
   id: string;
@@ -23,24 +26,73 @@ interface AdminSidebarProps {
   onItemClick?: (itemId: string) => void;
 }
 
-export default function AdminSidebar({ activeItem = 'dashboard', onItemClick }: AdminSidebarProps) {
+export default function AdminSidebar({
+  activeItem = "dashboard",
+  onItemClick,
+}: AdminSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const menuItems: MenuItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
-    { id: 'users', label: 'User Management', icon: Users, href: '/admin/users' },
-    { id: 'projects', label: 'Projects', icon: Briefcase, href: '/admin/projects' },
-    { id: 'analytics', label: 'Analytics', icon: ChartBar, href: '/admin/analytics' },
-    { id: 'billing', label: 'Billing & Contracts', icon: Receipt, href: '/admin/billing' },
-    { id: 'logs', label: 'Activity Logs', icon: Activity, href: '/admin/logs' },
-    { id: 'settings', label: 'Settings', icon: Settings, href: '/admin/settings' },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      href: "/admin/dashboard",
+    },
+    {
+      id: "users",
+      label: "User Management",
+      icon: Users,
+      href: "/admin/users",
+    },
+    {
+      id: "projects",
+      label: "Projects",
+      icon: Briefcase,
+      href: "/admin/projects",
+    },
+    {
+      id: "procurements",
+      label: "Procurements",
+      icon: ShoppingCart,
+      href: "/admin/procurements",
+    },
+    {
+      id: "threads",
+      label: "Messages",
+      icon: MessageSquare,
+      href: "/admin/threads",
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      icon: ChartBar,
+      href: "/admin/analytics",
+    },
+    {
+      id: "billing",
+      label: "Billing & Contracts",
+      icon: Receipt,
+      href: "/admin/billing",
+    },
+    { id: "logs", label: "Activity Logs", icon: Activity, href: "/admin/logs" },
+    {
+      id: "resources",
+      label: "Resources",
+      icon: FolderOpen,
+      href: "/admin/resources",
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: Settings,
+      href: "/admin/settings",
+    },
   ];
 
-  const handleItemClick = (itemId: string) => {
-    if (onItemClick) {
-      onItemClick(itemId);
-    }
+  const handleItemClick = (href: string) => {
+    window.location.href = href;
     setIsMobileOpen(false);
   };
 
@@ -50,7 +102,7 @@ export default function AdminSidebar({ activeItem = 'dashboard', onItemClick }: 
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg shadow-lg bg-white"
-        style={{ color: '#001f54' }}
+        style={{ color: "#001f54" }}
       >
         <svg
           className="w-6 h-6"
@@ -78,11 +130,11 @@ export default function AdminSidebar({ activeItem = 'dashboard', onItemClick }: 
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-16 h-[calc(100vh-4rem)] transition-all duration-300 z-40 ${
-          isCollapsed ? 'w-20' : 'w-64'
+          isCollapsed ? "w-20" : "w-64"
         } ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
-        style={{ backgroundColor: '#001f54' }}
+        style={{ backgroundColor: "#001f54" }}
       >
         <div className="flex flex-col h-full">
           {/* Sidebar Content */}
@@ -91,22 +143,26 @@ export default function AdminSidebar({ activeItem = 'dashboard', onItemClick }: 
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeItem === item.id;
-                
+
                 return (
                   <li key={item.id}>
                     <button
-                      onClick={() => handleItemClick(item.id)}
+                      onClick={() => handleItemClick(item.href)}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                         isActive
-                          ? 'text-white shadow-md'
-                          : 'text-gray-300 hover:text-white hover:bg-white/10'
+                          ? "text-white shadow-md"
+                          : "text-gray-300 hover:text-white hover:bg-white/10"
                       }`}
-                      style={isActive ? { backgroundColor: '#4169e1' } : {}}
-                      title={isCollapsed ? item.label : ''}
+                      style={isActive ? { backgroundColor: "#4169e1" } : {}}
+                      title={isCollapsed ? item.label : ""}
                     >
-                      <Icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0`} />
+                      <Icon
+                        className={`${isCollapsed ? "w-6 h-6" : "w-5 h-5"} flex-shrink-0`}
+                      />
                       {!isCollapsed && (
-                        <span className="text-sm font-medium">{item.label}</span>
+                        <span className="text-sm font-medium">
+                          {item.label}
+                        </span>
                       )}
                     </button>
                   </li>
@@ -135,7 +191,9 @@ export default function AdminSidebar({ activeItem = 'dashboard', onItemClick }: 
       </aside>
 
       {/* Spacer for main content */}
-      <div className={`hidden lg:block transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`} />
+      <div
+        className={`hidden lg:block transition-all duration-300 ${isCollapsed ? "w-20" : "w-64"}`}
+      />
     </>
   );
 }

@@ -1,159 +1,241 @@
-import AuthNavbar from '../../components/AuthNavbar';
-import AdminSidebar from '../../components/AdminSidebar';
+import AuthNavbar from "../../components/AuthNavbar";
+import AdminSidebar from "../../components/AdminSidebar";
 import {
   Briefcase,
   Users,
-  TrendingUp,
-  TriangleAlert,
-  Calendar,
+  ClipboardCheck,
+  ShoppingCart,
+  CheckCircle,
+  XCircle,
+  Eye,
   Activity,
   Clock,
-  AlertCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-} from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+} from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 
 export default function AdminDashboard() {
-  // Mock data for revenue chart
-  const revenueData = [
-    { month: 'Jan', revenue: 45000, target: 40000 },
-    { month: 'Feb', revenue: 52000, target: 45000 },
-    { month: 'Mar', revenue: 48000, target: 50000 },
-    { month: 'Apr', revenue: 61000, target: 55000 },
-    { month: 'May', revenue: 55000, target: 60000 },
-    { month: 'Jun', revenue: 67000, target: 65000 },
+  // Mock data for pending project approvals
+  const pendingProjects = [
+    {
+      id: 1,
+      name: "E-Commerce Platform Redesign",
+      requestedBy: "Sarah Johnson",
+      client: "TechCorp Inc.",
+      dateSubmitted: "Jan 20, 2026",
+      budget: "$45,000",
+    },
+    {
+      id: 2,
+      name: "Mobile App Development",
+      requestedBy: "Mike Chen",
+      client: "StartupXYZ",
+      dateSubmitted: "Jan 21, 2026",
+      budget: "$32,000",
+    },
+    {
+      id: 3,
+      name: "Cloud Migration Project",
+      requestedBy: "Emily Rodriguez",
+      client: "Enterprise Co.",
+      dateSubmitted: "Jan 22, 2026",
+      budget: "$78,000",
+    },
   ];
 
-  // Mock data for upcoming deadlines
-  const upcomingDeadlines = [
-    { id: 1, project: 'Q1 Financial Report', date: 'Jan 10, 2026', priority: 'high', daysLeft: 4 },
-    { id: 2, project: 'Product Launch Phase 2', date: 'Jan 15, 2026', priority: 'high', daysLeft: 9 },
-    { id: 3, project: 'Client Onboarding - TechCorp', date: 'Jan 18, 2026', priority: 'medium', daysLeft: 12 },
-    { id: 4, project: 'Security Audit Review', date: 'Jan 22, 2026', priority: 'medium', daysLeft: 16 },
-    { id: 5, project: 'Marketing Campaign Q1', date: 'Jan 25, 2026', priority: 'low', daysLeft: 19 },
+  // Mock data for pending procurement approvals
+  const pendingProcurement = [
+    {
+      id: 1,
+      item: "AWS Cloud Credits",
+      project: "Cloud Migration Project",
+      requestedBy: "David Kim",
+      dateSubmitted: "Jan 21, 2026",
+      amount: "$5,200",
+    },
+    {
+      id: 2,
+      item: "Design Software Licenses",
+      project: "E-Commerce Platform Redesign",
+      requestedBy: "Sarah Johnson",
+      dateSubmitted: "Jan 22, 2026",
+      amount: "$1,800",
+    },
+    {
+      id: 3,
+      item: "Server Hardware",
+      project: "Infrastructure Upgrade",
+      requestedBy: "Lisa Anderson",
+      dateSubmitted: "Jan 23, 2026",
+      amount: "$12,500",
+    },
   ];
 
-  // Mock data for activity log
-  const activityLog = [
-    { id: 1, user: 'Sarah Johnson', action: 'Completed project milestone', project: 'Website Redesign', time: '10 minutes ago' },
-    { id: 2, user: 'Mike Chen', action: 'Updated task status', project: 'Mobile App Development', time: '25 minutes ago' },
-    { id: 3, user: 'Emily Rodriguez', action: 'Added new team member', project: 'Infrastructure Upgrade', time: '1 hour ago' },
-    { id: 4, user: 'David Kim', action: 'Submitted report', project: 'Q4 Analytics', time: '2 hours ago' },
-    { id: 5, user: 'Lisa Anderson', action: 'Resolved critical bug', project: 'API Integration', time: '3 hours ago' },
+  // Mock data for recent activity
+  const recentActivity = [
+    {
+      id: 1,
+      user: "Admin",
+      action: "Approved project: Website Redesign",
+      time: "30 minutes ago",
+    },
+    {
+      id: 2,
+      user: "Sarah Johnson",
+      action: "Submitted new project proposal",
+      time: "1 hour ago",
+    },
+    {
+      id: 3,
+      user: "Admin",
+      action: "Rejected procurement request",
+      time: "2 hours ago",
+    },
+    {
+      id: 4,
+      user: "Mike Chen",
+      action: "Updated project milestone",
+      time: "3 hours ago",
+    },
+    {
+      id: 5,
+      user: "Admin",
+      action: "Approved procurement: Cloud Services",
+      time: "4 hours ago",
+    },
   ];
 
-  // Mock data for risk alerts
-  const riskAlerts = [
-    { id: 1, project: 'Cloud Migration', type: 'delay', severity: 'high', message: 'Project is 3 days behind schedule' },
-    { id: 2, project: 'Data Analytics Platform', type: 'budget', severity: 'medium', message: 'Budget utilization at 85%' },
-    { id: 3, project: 'Customer Portal', type: 'resource', severity: 'high', message: '2 key team members on leave' },
-    { id: 4, project: 'API Modernization', type: 'dependency', severity: 'low', message: 'Waiting on third-party approval' },
+  // Mock data for project status breakdown
+  const projectStatusData = [
+    { name: "Pending", value: 8, color: "#ff9800" },
+    { name: "In Progress", value: 24, color: "#4169e1" },
+    { name: "Completed", value: 15, color: "#a7fc00" },
+    { name: "On Hold", value: 3, color: "#717182" },
   ];
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return '#d4183d';
-      case 'medium':
-        return '#4169e1';
-      case 'low':
-        return '#a7fc00';
-      default:
-        return '#717182';
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high':
-        return '#d4183d';
-      case 'medium':
-        return '#ff9800';
-      case 'low':
-        return '#a7fc00';
-      default:
-        return '#717182';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar currentPage="admin" />
+      <AuthNavbar currentPage="dashboard" />
       <AdminSidebar activeItem="dashboard" />
-      
-      <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:ml-0">
+
+      <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
         <div className="max-w-7xl mx-auto">
           {/* Page Heading */}
           <div className="mb-8">
-            <h1 className="text-4xl" style={{ color: '#001f54' }}>Admin Dashboard</h1>
-            <p className="text-gray-600 mt-2">Comprehensive overview of business operations and key metrics</p>
+            <h1 className="text-4xl" style={{ color: "#001f54" }}>
+              Admin Dashboard
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Manage approvals and monitor company activity
+            </p>
           </div>
 
-          {/* KPI Cards Grid */}
+          {/* Top Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Active Projects */}
+            {/* Total Projects */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-lg" style={{ backgroundColor: '#e3f2fd' }}>
-                  <Briefcase className="w-6 h-6" style={{ color: '#4169e1' }} />
+                <div
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: "#e3f2fd" }}
+                >
+                  <Briefcase className="w-6 h-6" style={{ color: "#4169e1" }} />
                 </div>
-                <span className="flex items-center text-green-600 text-sm">
-                  <ArrowUpRight className="w-4 h-4 mr-1" />
-                  12%
+              </div>
+              <h3 className="text-gray-600 text-sm mb-2">Total Projects</h3>
+              <p className="text-3xl mb-3" style={{ color: "#001f54" }}>
+                50
+              </p>
+              <div className="flex items-center gap-3 text-xs text-gray-600">
+                <span className="flex items-center gap-1">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: "#ff9800" }}
+                  ></span>
+                  8 Pending
+                </span>
+                <span className="flex items-center gap-1">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: "#4169e1" }}
+                  ></span>
+                  24 In Progress
+                </span>
+                <span className="flex items-center gap-1">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: "#a7fc00" }}
+                  ></span>
+                  15 Completed
                 </span>
               </div>
-              <h3 className="text-gray-600 text-sm mb-1">Total Active Projects</h3>
-              <p className="text-3xl" style={{ color: '#001f54' }}>24</p>
-              <p className="text-xs text-gray-500 mt-2">8 completed this month</p>
             </div>
 
-            {/* Staff Workload Distribution */}
+            {/* Pending Project Approvals */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-lg" style={{ backgroundColor: '#f3e5f5' }}>
-                  <Users className="w-6 h-6" style={{ color: '#9c27b0' }} />
+                <div
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: "#fff3e0" }}
+                >
+                  <ClipboardCheck
+                    className="w-6 h-6"
+                    style={{ color: "#ff9800" }}
+                  />
                 </div>
-                <span className="flex items-center text-orange-600 text-sm">
-                  <ArrowUpRight className="w-4 h-4 mr-1" />
-                  5%
-                </span>
               </div>
-              <h3 className="text-gray-600 text-sm mb-1">Staff Workload</h3>
-              <p className="text-3xl" style={{ color: '#001f54' }}>78%</p>
-              <p className="text-xs text-gray-500 mt-2">Average capacity utilization</p>
+              <h3 className="text-gray-600 text-sm mb-2">
+                Pending Project Approvals
+              </h3>
+              <p className="text-3xl mb-3" style={{ color: "#001f54" }}>
+                {pendingProjects.length}
+              </p>
+              <p className="text-xs text-gray-500">Requires your attention</p>
             </div>
 
-            {/* Revenue Overview */}
+            {/* Pending Procurement Approvals */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-lg" style={{ backgroundColor: '#e8f5e9' }}>
-                  <TrendingUp className="w-6 h-6" style={{ color: '#4caf50' }} />
+                <div
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: "#fce4ec" }}
+                >
+                  <ShoppingCart
+                    className="w-6 h-6"
+                    style={{ color: "#d4183d" }}
+                  />
                 </div>
-                <span className="flex items-center text-green-600 text-sm">
-                  <ArrowUpRight className="w-4 h-4 mr-1" />
-                  18%
-                </span>
               </div>
-              <h3 className="text-gray-600 text-sm mb-1">Revenue Overview</h3>
-              <p className="text-3xl" style={{ color: '#001f54' }}>$67K</p>
-              <p className="text-xs text-gray-500 mt-2">June 2026 revenue</p>
+              <h3 className="text-gray-600 text-sm mb-2">
+                Pending Procurement Approvals
+              </h3>
+              <p className="text-3xl mb-3" style={{ color: "#001f54" }}>
+                {pendingProcurement.length}
+              </p>
+              <p className="text-xs text-gray-500">Total value: $19,500</p>
             </div>
 
-            {/* Risk/Delay Alerts */}
+            {/* Active Clients */}
             <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 rounded-lg" style={{ backgroundColor: '#ffebee' }}>
-                  <TriangleAlert className="w-6 h-6" style={{ color: '#d4183d' }} />
+                <div
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: "#f1f8e9" }}
+                >
+                  <Users className="w-6 h-6" style={{ color: "#a7fc00" }} />
                 </div>
-                <span className="flex items-center text-red-600 text-sm">
-                  <ArrowDownRight className="w-4 h-4 mr-1" />
-                  2
-                </span>
               </div>
-              <h3 className="text-gray-600 text-sm mb-1">Risk/Delay Alerts</h3>
-              <p className="text-3xl" style={{ color: '#001f54' }}>4</p>
-              <p className="text-xs text-gray-500 mt-2">Requires immediate attention</p>
+              <h3 className="text-gray-600 text-sm mb-2">Active Clients</h3>
+              <p className="text-3xl mb-3" style={{ color: "#001f54" }}>
+                32
+              </p>
+              <p className="text-xs text-gray-500">5 new this month</p>
             </div>
           </div>
 
@@ -161,82 +243,205 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Wider (2/3) */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Upcoming Deadlines */}
+              {/* Approval Queue - Projects */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#e3f2fd' }}>
-                      <Calendar className="w-5 h-5" style={{ color: '#4169e1' }} />
-                    </div>
-                    <h2 className="text-xl" style={{ color: '#001f54' }}>Upcoming Deadlines</h2>
-                  </div>
-                  <button className="text-sm hover:underline" style={{ color: '#4169e1' }}>
-                    View All
-                  </button>
+                  <h2 className="text-xl" style={{ color: "#001f54" }}>
+                    Pending Project Approvals
+                  </h2>
+                  <span className="text-sm px-3 py-1 rounded-full bg-orange-100 text-orange-700">
+                    {pendingProjects.length} pending
+                  </span>
                 </div>
-                <div className="space-y-3">
-                  {upcomingDeadlines.map((deadline) => (
+                <div className="space-y-4">
+                  {pendingProjects.map((project) => (
                     <div
-                      key={deadline.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      key={project.id}
+                      className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                     >
-                      <div className="flex-1">
-                        <h4 className="font-medium" style={{ color: '#001f54' }}>{deadline.project}</h4>
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className="text-sm text-gray-600 flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {deadline.date}
-                          </span>
-                          <span
-                            className="text-xs px-2 py-1 rounded-full"
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <h4
+                            className="font-medium mb-1"
+                            style={{ color: "#001f54" }}
+                          >
+                            {project.name}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                            <span>Client: {project.client}</span>
+                            <span>•</span>
+                            <span>Requested by: {project.requestedBy}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {project.dateSubmitted}
+                            </span>
+                          </div>
+                          <p
+                            className="text-sm mt-2"
+                            style={{ color: "#4169e1" }}
+                          >
+                            Budget: {project.budget}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-1"
                             style={{
-                              backgroundColor: `${getPriorityColor(deadline.priority)}20`,
-                              color: getPriorityColor(deadline.priority),
+                              backgroundColor: "#a7fc00",
+                              color: "#001f54",
                             }}
                           >
-                            {deadline.priority.toUpperCase()}
-                          </span>
+                            <CheckCircle className="w-4 h-4" />
+                            Approve
+                          </button>
+                          <button
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 hover:bg-gray-300 transition-colors flex items-center gap-1"
+                            style={{ color: "#001f54" }}
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Reject
+                          </button>
+                          <button
+                            className="px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors"
+                            style={{ color: "#4169e1" }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium" style={{ color: '#4169e1' }}>
-                          {deadline.daysLeft} days
-                        </p>
-                        <p className="text-xs text-gray-500">remaining</p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Activity Log */}
+              {/* Approval Queue - Procurement */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl" style={{ color: "#001f54" }}>
+                    Pending Procurement Approvals
+                  </h2>
+                  <span className="text-sm px-3 py-1 rounded-full bg-red-100 text-red-700">
+                    {pendingProcurement.length} pending
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {pendingProcurement.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <h4
+                            className="font-medium mb-1"
+                            style={{ color: "#001f54" }}
+                          >
+                            {item.item}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                            <span>Project: {item.project}</span>
+                            <span>•</span>
+                            <span>Requested by: {item.requestedBy}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {item.dateSubmitted}
+                            </span>
+                          </div>
+                          <p
+                            className="text-sm mt-2 font-medium"
+                            style={{ color: "#d4183d" }}
+                          >
+                            Amount: {item.amount}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-1"
+                            style={{
+                              backgroundColor: "#a7fc00",
+                              color: "#001f54",
+                            }}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Approve
+                          </button>
+                          <button
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 hover:bg-gray-300 transition-colors flex items-center gap-1"
+                            style={{ color: "#001f54" }}
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Reject
+                          </button>
+                          <button
+                            className="px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors"
+                            style={{ color: "#4169e1" }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent Activity */}
               <div className="bg-white rounded-xl shadow-md p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: '#f3e5f5' }}>
-                      <Activity className="w-5 h-5" style={{ color: '#9c27b0' }} />
+                    <div
+                      className="p-2 rounded-lg"
+                      style={{ backgroundColor: "#f3e5f5" }}
+                    >
+                      <Activity
+                        className="w-5 h-5"
+                        style={{ color: "#9c27b0" }}
+                      />
                     </div>
-                    <h2 className="text-xl" style={{ color: '#001f54' }}>Activity Log</h2>
+                    <h2 className="text-xl" style={{ color: "#001f54" }}>
+                      Recent Activity
+                    </h2>
                   </div>
-                  <button className="text-sm hover:underline" style={{ color: '#4169e1' }}>
+                  <button
+                    className="text-sm hover:underline"
+                    style={{ color: "#4169e1" }}
+                  >
                     View All
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {activityLog.map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-4 pb-4 border-b border-gray-100 last:border-0">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style={{ backgroundColor: '#4169e1' }}>
-                        {activity.user.split(' ').map(n => n[0]).join('')}
+                  {recentActivity.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-4 pb-4 border-b border-gray-100 last:border-0"
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
+                        style={{ backgroundColor: "#4169e1" }}
+                      >
+                        {activity.user
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                       </div>
                       <div className="flex-1">
                         <p className="text-sm">
-                          <span className="font-medium" style={{ color: '#001f54' }}>{activity.user}</span>
-                          {' '}
-                          <span className="text-gray-600">{activity.action}</span>
+                          <span
+                            className="font-medium"
+                            style={{ color: "#001f54" }}
+                          >
+                            {activity.user}
+                          </span>{" "}
+                          <span className="text-gray-600">
+                            {activity.action}
+                          </span>
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">{activity.project}</p>
+                        <span className="text-xs text-gray-400">
+                          {activity.time}
+                        </span>
                       </div>
-                      <span className="text-xs text-gray-400">{activity.time}</span>
                     </div>
                   ))}
                 </div>
@@ -245,90 +450,95 @@ export default function AdminDashboard() {
 
             {/* Right Column (1/3) */}
             <div className="space-y-6">
-              {/* Revenue Chart */}
+              {/* Project Status Breakdown */}
               <div className="bg-white rounded-xl shadow-md p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#e8f5e9' }}>
-                    <TrendingUp className="w-5 h-5" style={{ color: '#4caf50' }} />
-                  </div>
-                  <h2 className="text-xl" style={{ color: '#001f54' }}>Revenue Trend</h2>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="month" stroke="#717182" style={{ fontSize: '12px' }} />
-                    <YAxis stroke="#717182" style={{ fontSize: '12px' }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }} 
-                    />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#4169e1" 
-                      strokeWidth={3}
-                      name="Revenue" 
-                      dot={{ fill: '#4169e1', r: 4 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="target" 
-                      stroke="#a7fc00" 
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      name="Target" 
-                      dot={{ fill: '#a7fc00', r: 3 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Project Risk Alerts */}
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffebee' }}>
-                    <AlertCircle className="w-5 h-5" style={{ color: '#d4183d' }} />
-                  </div>
-                  <h2 className="text-xl" style={{ color: '#001f54' }}>Risk Alerts</h2>
-                </div>
-                <div className="space-y-3">
-                  {riskAlerts.map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="p-4 rounded-lg border-l-4"
-                      style={{
-                        backgroundColor: `${getSeverityColor(alert.severity)}10`,
-                        borderLeftColor: getSeverityColor(alert.severity),
-                      }}
+                <h2 className="text-xl mb-6" style={{ color: "#001f54" }}>
+                  Project Status Breakdown
+                </h2>
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={projectStatusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) =>
+                        `${name} ${(percent * 100).toFixed(0)}%`
+                      }
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="text-sm font-medium" style={{ color: '#001f54' }}>
-                          {alert.project}
-                        </h4>
-                        <span
-                          className="text-xs px-2 py-1 rounded-full"
-                          style={{
-                            backgroundColor: getSeverityColor(alert.severity),
-                            color: 'white',
-                          }}
-                        >
-                          {alert.severity.toUpperCase()}
+                      {projectStatusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-6 space-y-3">
+                  {projectStatusData.map((status) => (
+                    <div
+                      key={status.name}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: status.color }}
+                        ></div>
+                        <span className="text-sm text-gray-700">
+                          {status.name}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600">{alert.message}</p>
-                      <button 
-                        className="text-xs mt-2 hover:underline"
-                        style={{ color: '#4169e1' }}
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "#001f54" }}
                       >
-                        View Details →
-                      </button>
+                        {status.value}
+                      </span>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-xl shadow-md p-6">
+                <h2 className="text-xl mb-4" style={{ color: "#001f54" }}>
+                  Quick Actions
+                </h2>
+                <div className="space-y-3">
+                  <button
+                    className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity text-left"
+                    style={{ backgroundColor: "#4169e1" }}
+                  >
+                    View All Projects
+                  </button>
+                  <button
+                    className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity text-left"
+                    style={{ backgroundColor: "#001f54" }}
+                  >
+                    Manage Users
+                  </button>
+                  <button
+                    className="w-full px-4 py-3 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors text-left"
+                    style={{ color: "#001f54" }}
+                  >
+                    View Activity Logs
+                  </button>
+                  <button
+                    className="w-full px-4 py-3 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors text-left"
+                    style={{ color: "#001f54" }}
+                  >
+                    Generate Reports
+                  </button>
                 </div>
               </div>
             </div>

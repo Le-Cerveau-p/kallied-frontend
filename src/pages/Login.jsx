@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../api/client";
+import { Link } from "react-router-dom";
 import {
   EnvelopeIcon,
   LockClosedIcon,
@@ -22,8 +23,7 @@ import {
   TriangleAlert,
   X,
   Trash2,
-} from 'lucide-react';
-
+} from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -60,56 +60,60 @@ export default function Login() {
     setLoading(true);
 
     try {
-        const res = await api.post("/auth/login", {
+      const res = await api.post("/auth/login", {
         email,
         password,
-        });
+      });
 
-        // save token
-        const token = res.data.access_token;
-        const expiresIn = res.data.expiresIn; // seconds (1800)
+      // save token
+      const token = res.data.access_token;
+      const expiresIn = res.data.expiresIn; // seconds (1800)
 
-        const expiryTime = Date.now() + expiresIn * 1000;
+      const expiryTime = Date.now() + expiresIn * 1000;
 
-        localStorage.setItem("token", token);
-        localStorage.setItem("token_expiry", expiryTime.toString());
-        localStorage.setItem("role", res.data.user.role);
-        localStorage.setItem("email", res.data.user.email);
-        localStorage.setItem("username", res.data.user.name);
+      localStorage.setItem("token", token);
+      localStorage.setItem("token_expiry", expiryTime.toString());
+      localStorage.setItem("role", res.data.user.role);
+      localStorage.setItem("email", res.data.user.email);
+      localStorage.setItem("username", res.data.user.name);
 
+      setUser({
+        email: res.data.user.email,
+        role: res.data.user.role,
+        token,
+      });
 
-        setUser({
-          email: res.data.user.email,
-          role: res.data.user.role,
-          token,
-        });
-
-        // redirect based on role
-        if (res.data.user.role === "ADMIN") {
-          window.location.href = "/dashboard/admin";
-        } 
-        else if (res.data.user.role === "STAFF") {
-          window.location.href = "/dashboard/staff";
-        } 
-        else {
-          window.location.href = "/dashboard/client";
-}
+      // redirect based on role
+      if (res.data.user.role === "ADMIN") {
+        window.location.href = "/admin/dashboard";
+      } else if (res.data.user.role === "STAFF") {
+        window.location.href = "/staff/dashboard";
+      } else {
+        window.location.href = "/client/dashboard";
+      }
     } catch (err) {
-        setErrors({
+      setErrors({
         api: err?.response?.data?.message || "Login failed",
-        });
+      });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
-
-
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #001f54 0%, #4169e1 50%, #a7fc00 100%)' }}>
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{
+        background:
+          "linear-gradient(135deg, #001f54 0%, #4169e1 50%, #a7fc00 100%)",
+      }}
+    >
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8">
         {/* Header */}
-        <h2 className="text-2xl font-bold text-center" style={{ color: '#001f54' }}>
+        <h2
+          className="text-2xl font-bold text-center"
+          style={{ color: "#001f54" }}
+        >
           Welcome Back
         </h2>
         <p className="text-sm text-gray-500 text-center mt-1">
@@ -129,9 +133,10 @@ export default function Login() {
                 type="email"
                 placeholder="Enter your email"
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg bg-gray-50 focus:outline-none 
-                    ${errors.email
-                    ? "border-red-500 focus:ring-red-400"
-                    : "focus:ring-blue-500"
+                    ${
+                      errors.email
+                        ? "border-red-500 focus:ring-red-400"
+                        : "focus:ring-blue-500"
                     }`}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -148,7 +153,7 @@ export default function Login() {
               Password
             </label>
             <div className="relative mt-1">
-                <LockClosedIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <LockClosedIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 key={showPassword ? "text" : "password"}
                 type={showPassword ? "text" : "password"}
@@ -157,7 +162,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              
+
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -171,9 +176,7 @@ export default function Login() {
               </button>
             </div>
             {errors.password && (
-              <p className="text-xs text-red-500 mt-1">
-                {errors.password}
-              </p>
+              <p className="text-xs text-red-500 mt-1">{errors.password}</p>
             )}
           </div>
 
@@ -193,21 +196,21 @@ export default function Login() {
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-blue-800 to-blue-500 text-white hover:opacity-90"
             }`}
-          >  
+          >
             {loading ? (
               <>
-                <Loader size={20} className="animate-spin" /> 
+                <Loader size={20} className="animate-spin" />
                 Signing in...
               </>
             ) : (
-              'Sign in'
+              "Sign in"
             )}
           </button>
           {errors.api && (
             <p className="text-center text-sm text-red-500 mt-2">
-                {errors.api}
+              {errors.api}
             </p>
-            )}
+          )}
 
           {/* Divider */}
           <div className="flex items-center my-4">
@@ -232,9 +235,11 @@ export default function Login() {
           {/* Footer */}
           <p className="text-sm text-center mt-6">
             Don’t have an account?{" "}
-            <span className="text-blue-600 cursor-pointer hover:underline">
-              Sign up
-            </span>
+            <Link to="/register">
+              <span className="text-blue-600 cursor-pointer hover:underline">
+                Sign up
+              </span>
+            </Link>
           </p>
         </form>
       </div>

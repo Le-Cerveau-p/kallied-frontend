@@ -1,149 +1,150 @@
-import AuthNavbar from '../../components/AuthNavbar';
-import ClientSidebar from '../../components/ClientSidebar';
+import AuthNavbar from "../../components/AuthNavbar";
+import ClientSidebar from "../../components/ClientSidebar";
 import {
-  Calendar,
+  FolderKanban,
   CircleCheck,
-  Download,
-  FileText,
-  User,
   Clock,
-  MessageCircle,
+  AlertCircle,
   TrendingUp,
-} from 'lucide-react';
+  CheckCircle2,
+  FileText,
+  MessageCircle,
+  Bell,
+} from "lucide-react";
 
 export default function ClientDashboard() {
-  // Mock data for insights
-  const projectCompletion = 73;
-  const milestonesCompleted = 8;
-  const totalMilestones = 12;
-  const nextMeetingDate = 'Jan 10, 2026';
-  const nextMeetingTime = '2:00 PM EST';
+  // Mock data for summary cards
+  const summaryStats = {
+    totalActiveProjects: 12,
+    projectsInProgress: 7,
+    completedProjects: 24,
+    pendingActions: 5,
+  };
 
-  // Mock timeline data
-  const timelineEvents = [
+  // Mock data for active projects
+  const activeProjects = [
     {
       id: 1,
-      title: 'Project Kickoff',
-      date: 'Dec 1, 2025',
-      status: 'completed',
-      description: 'Initial meeting and requirements gathering',
+      name: "Website Redesign",
+      status: "In Progress",
+      progress: 73,
+      milestone: "UI/UX Design Phase - 3 of 5 screens completed",
+      lastUpdate: "2 hours ago",
+      statusColor: "#4169e1",
     },
     {
       id: 2,
-      title: 'Design Phase Complete',
-      date: 'Dec 15, 2025',
-      status: 'completed',
-      description: 'UI/UX designs approved',
+      name: "Mobile App Development",
+      status: "In Progress",
+      progress: 45,
+      milestone: "Backend API Integration - Authentication module completed",
+      lastUpdate: "5 hours ago",
+      statusColor: "#4169e1",
     },
     {
       id: 3,
-      title: 'Development Milestone 1',
-      date: 'Dec 28, 2025',
-      status: 'completed',
-      description: 'Core features implementation',
+      name: "Brand Identity Package",
+      status: "Pending",
+      progress: 15,
+      milestone: "Awaiting client feedback on logo concepts",
+      lastUpdate: "1 day ago",
+      statusColor: "#ff9800",
     },
     {
       id: 4,
-      title: 'Testing & QA',
-      date: 'Jan 10, 2026',
-      status: 'in-progress',
-      description: 'Quality assurance and bug fixes',
+      name: "E-commerce Platform",
+      status: "In Progress",
+      progress: 88,
+      milestone: "Final testing phase - Payment gateway integration complete",
+      lastUpdate: "3 hours ago",
+      statusColor: "#4169e1",
     },
     {
       id: 5,
-      title: 'Final Delivery',
-      date: 'Jan 25, 2026',
-      status: 'upcoming',
-      description: 'Production deployment',
+      name: "Marketing Campaign",
+      status: "Completed",
+      progress: 100,
+      milestone: "All deliverables submitted and approved",
+      lastUpdate: "2 days ago",
+      statusColor: "#4caf50",
     },
   ];
 
-  // Mock reports data
-  const reports = [
-    { id: 1, name: 'Q4 Analytics Report', date: 'Dec 30, 2025', size: '2.4 MB', type: 'PDF' },
-    { id: 2, name: 'User Research Summary', date: 'Dec 28, 2025', size: '1.8 MB', type: 'PDF' },
-    { id: 3, name: 'Technical Specifications', date: 'Dec 20, 2025', size: '3.1 MB', type: 'DOCX' },
-    { id: 4, name: 'Design Assets Package', date: 'Dec 15, 2025', size: '12.5 MB', type: 'ZIP' },
-  ];
-
-  // Mock communication history
-  const messages = [
+  // Mock data for recent activity feed
+  const recentActivities = [
     {
       id: 1,
-      sender: 'Project Manager',
-      initials: 'PM',
-      message: 'The latest design mockups have been uploaded to the Reports section. Please review and share your feedback by EOD.',
-      timestamp: '2 hours ago',
-      isClient: false,
+      type: "update",
+      title: "Project milestone completed",
+      description: "Website Redesign - Homepage design approved",
+      timestamp: "2 hours ago",
+      icon: CheckCircle2,
+      iconColor: "#4caf50",
     },
     {
       id: 2,
-      sender: 'You',
-      initials: 'YO',
-      message: 'Thank you! The designs look great. I have a few minor suggestions for the dashboard layout.',
-      timestamp: '1 hour ago',
-      isClient: true,
+      type: "approval",
+      title: "Approval required",
+      description: "Brand Identity Package - Review logo concepts",
+      timestamp: "1 day ago",
+      icon: AlertCircle,
+      iconColor: "#ff9800",
+      unread: true,
     },
     {
       id: 3,
-      sender: 'Lead Developer',
-      initials: 'LD',
-      message: 'Development on the new analytics module is progressing well. We\'re on track for the Jan 10th milestone.',
-      timestamp: '45 minutes ago',
-      isClient: false,
+      type: "document",
+      title: "Document uploaded",
+      description: "E-commerce Platform - Technical specifications v2.0",
+      timestamp: "1 day ago",
+      icon: FileText,
+      iconColor: "#4169e1",
     },
     {
       id: 4,
-      sender: 'You',
-      initials: 'YO',
-      message: 'Excellent! Looking forward to seeing it in action.',
-      timestamp: '30 minutes ago',
-      isClient: true,
+      type: "message",
+      title: "New message received",
+      description: "Project Manager: Testing phase update available",
+      timestamp: "3 hours ago",
+      icon: MessageCircle,
+      iconColor: "#4169e1",
+      unread: true,
+    },
+    {
+      id: 5,
+      type: "update",
+      title: "Status update",
+      description: "Mobile App Development - Sprint 3 completed",
+      timestamp: "5 hours ago",
+      icon: TrendingUp,
+      iconColor: "#4169e1",
+    },
+    {
+      id: 6,
+      type: "document",
+      title: "Document uploaded",
+      description: "Marketing Campaign - Final report and analytics",
+      timestamp: "2 days ago",
+      icon: FileText,
+      iconColor: "#4169e1",
     },
   ];
 
-  // Mock upcoming schedule
-  const upcomingEvents = [
-    {
-      id: 1,
-      title: 'Project Review Meeting',
-      date: 'Jan 10, 2026',
-      time: '2:00 PM EST',
-      type: 'meeting',
-    },
-    {
-      id: 2,
-      title: 'Deliverable Due: Testing Report',
-      date: 'Jan 12, 2026',
-      time: 'End of Day',
-      type: 'deadline',
-    },
-    {
-      id: 3,
-      title: 'Monthly Status Call',
-      date: 'Jan 15, 2026',
-      time: '10:00 AM EST',
-      type: 'meeting',
-    },
-    {
-      id: 4,
-      title: 'Final Presentation',
-      date: 'Jan 25, 2026',
-      time: '3:00 PM EST',
-      type: 'meeting',
-    },
-  ];
+  // Unread messages count
+  const unreadCount = recentActivities.filter(
+    (activity) => activity.unread,
+  ).length;
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeStyle = (status: string) => {
     switch (status) {
-      case 'completed':
-        return '#4caf50';
-      case 'in-progress':
-        return '#4169e1';
-      case 'upcoming':
-        return '#717182';
+      case "Completed":
+        return { backgroundColor: "#4caf5020", color: "#4caf50" };
+      case "In Progress":
+        return { backgroundColor: "#4169e120", color: "#4169e1" };
+      case "Pending":
+        return { backgroundColor: "#ff980020", color: "#ff9800" };
       default:
-        return '#717182';
+        return { backgroundColor: "#71718220", color: "#717182" };
     }
   };
 
@@ -151,345 +152,266 @@ export default function ClientDashboard() {
     <div className="min-h-screen bg-gray-50">
       <AuthNavbar currentPage="client" />
       <ClientSidebar activeItem="dashboard" />
-      
+
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-4xl" style={{ color: '#001f54' }}>Client Dashboard</h1>
-            <p className="text-gray-600 mt-2">Welcome back! Here's an overview of your projects and progress</p>
+            <h1 className="text-4xl" style={{ color: "#001f54" }}>
+              Client Dashboard
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Overview of your active projects and overall project health
+            </p>
           </div>
 
-          {/* Top Insights Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Project Completion Card */}
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200">
-              <div className="flex flex-col items-center">
-                <div className="relative w-32 h-32 mb-4">
-                  {/* Circular Progress */}
-                  <svg className="transform -rotate-90 w-32 h-32">
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="#e5e7eb"
-                      strokeWidth="12"
-                      fill="none"
-                    />
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="56"
-                      stroke="#4169e1"
-                      strokeWidth="12"
-                      fill="none"
-                      strokeDasharray={`${2 * Math.PI * 56}`}
-                      strokeDashoffset={`${2 * Math.PI * 56 * (1 - projectCompletion / 100)}`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold" style={{ color: '#4169e1' }}>
-                      {projectCompletion}%
-                    </span>
-                  </div>
+          {/* Top Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Total Active Projects */}
+            <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div
+                  className="w-12 h-12 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "#4169e120" }}
+                >
+                  <FolderKanban
+                    className="w-6 h-6"
+                    style={{ color: "#4169e1" }}
+                  />
                 </div>
-                <h3 className="font-semibold mb-1" style={{ color: '#001f54' }}>
-                  Project Completion
-                </h3>
-                <p className="text-sm text-gray-500 text-center">Overall progress across all milestones</p>
               </div>
+              <div
+                className="text-3xl font-bold mb-1"
+                style={{ color: "#001f54" }}
+              >
+                {summaryStats.totalActiveProjects}
+              </div>
+              <p className="text-sm text-gray-600">Total Active Projects</p>
             </div>
 
-            {/* Milestones Completed Card */}
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200">
-              <div className="flex flex-col items-center">
+            {/* Projects In Progress */}
+            <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center justify-between mb-4">
                 <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-                  style={{ backgroundColor: '#a7fc0020' }}
+                  className="w-12 h-12 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "#4169e120" }}
                 >
-                  <CircleCheck className="w-10 h-10" style={{ color: '#4caf50' }} />
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2" style={{ color: '#001f54' }}>
-                    {milestonesCompleted}
-                    <span className="text-xl text-gray-400">/{totalMilestones}</span>
-                  </div>
-                  <h3 className="font-semibold mb-1" style={{ color: '#001f54' }}>
-                    Milestones Completed
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {Math.round((milestonesCompleted / totalMilestones) * 100)}% of total goals achieved
-                  </p>
+                  <Clock className="w-6 h-6" style={{ color: "#4169e1" }} />
                 </div>
               </div>
+              <div
+                className="text-3xl font-bold mb-1"
+                style={{ color: "#001f54" }}
+              >
+                {summaryStats.projectsInProgress}
+              </div>
+              <p className="text-sm text-gray-600">Projects In Progress</p>
             </div>
 
-            {/* Next Meeting Card */}
-            <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200">
-              <div className="flex flex-col items-center">
+            {/* Completed Projects */}
+            <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center justify-between mb-4">
                 <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-                  style={{ backgroundColor: '#4169e120' }}
+                  className="w-12 h-12 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "#4caf5020" }}
                 >
-                  <Calendar className="w-10 h-10" style={{ color: '#4169e1' }} />
-                </div>
-                <div className="text-center">
-                  <h3 className="font-semibold mb-2" style={{ color: '#001f54' }}>
-                    Next Meeting
-                  </h3>
-                  <div className="text-2xl font-bold mb-1" style={{ color: '#4169e1' }}>
-                    {nextMeetingDate}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">{nextMeetingTime}</p>
-                  <button
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-md"
-                    style={{ backgroundColor: '#a7fc00', color: '#001f54' }}
-                  >
-                    Add to Calendar
-                  </button>
+                  <CircleCheck
+                    className="w-6 h-6"
+                    style={{ color: "#4caf50" }}
+                  />
                 </div>
               </div>
+              <div
+                className="text-3xl font-bold mb-1"
+                style={{ color: "#001f54" }}
+              >
+                {summaryStats.completedProjects}
+              </div>
+              <p className="text-sm text-gray-600">Completed Projects</p>
+            </div>
+
+            {/* Pending Actions */}
+            <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div
+                  className="w-12 h-12 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "#ff980020" }}
+                >
+                  <AlertCircle
+                    className="w-6 h-6"
+                    style={{ color: "#ff9800" }}
+                  />
+                </div>
+              </div>
+              <div
+                className="text-3xl font-bold mb-1"
+                style={{ color: "#001f54" }}
+              >
+                {summaryStats.pendingActions}
+              </div>
+              <p className="text-sm text-gray-600">Pending Actions</p>
             </div>
           </div>
 
-          {/* Middle Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Project Timeline - Left (2/3 width) */}
-            <div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <TrendingUp className="w-6 h-6" style={{ color: '#4169e1' }} />
-                <h2 className="text-2xl font-semibold" style={{ color: '#001f54' }}>
-                  Project Timeline
-                </h2>
-              </div>
+          {/* Main Content - Projects and Activity Sidebar */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Project Health Cards - Main Section (2/3 width) */}
+            <div className="lg:col-span-2 space-y-6">
+              <h2
+                className="text-2xl font-semibold mb-4"
+                style={{ color: "#001f54" }}
+              >
+                Project Health
+              </h2>
 
-              <div className="space-y-6">
-                {timelineEvents.map((event, index) => (
-                  <div key={event.id} className="relative flex gap-4">
-                    {/* Timeline Line */}
-                    {index !== timelineEvents.length - 1 && (
-                      <div
-                        className="absolute left-5 top-12 w-0.5 h-full"
-                        style={{ backgroundColor: '#e5e7eb' }}
-                      />
-                    )}
-
-                    {/* Status Circle */}
-                    <div className="relative flex-shrink-0">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center border-4 border-white"
-                        style={{
-                          backgroundColor: getStatusColor(event.status),
-                        }}
+              {activeProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow duration-200"
+                >
+                  {/* Project Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3
+                        className="text-xl font-semibold mb-2"
+                        style={{ color: "#001f54" }}
                       >
-                        {event.status === 'completed' && (
-                          <CircleCheck className="w-5 h-5 text-white" />
-                        )}
-                        {event.status === 'in-progress' && (
-                          <Clock className="w-5 h-5 text-white" />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Event Details */}
-                    <div className="flex-1 pb-6">
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-semibold" style={{ color: '#001f54' }}>
-                          {event.title}
-                        </h4>
-                        <span
-                          className="text-xs px-3 py-1 rounded-full font-medium"
-                          style={{
-                            backgroundColor: `${getStatusColor(event.status)}20`,
-                            color: getStatusColor(event.status),
-                          }}
-                        >
-                          {event.status.replace('-', ' ').toUpperCase()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-1">{event.description}</p>
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {event.date}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Reports & Deliverables - Right (1/3 width) */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <FileText className="w-6 h-6" style={{ color: '#4169e1' }} />
-                <h2 className="text-xl font-semibold" style={{ color: '#001f54' }}>
-                  Reports & Deliverables
-                </h2>
-              </div>
-
-              <div className="space-y-3">
-                {reports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="p-3 border rounded-lg hover:shadow-md transition-all duration-200"
-                    style={{ borderColor: '#e5e7eb' }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium truncate" style={{ color: '#001f54' }}>
-                          {report.name}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {report.date} • {report.size}
-                        </p>
-                      </div>
+                        {project.name}
+                      </h3>
                       <span
-                        className="text-xs px-2 py-1 rounded font-medium ml-2"
-                        style={{ backgroundColor: '#4169e120', color: '#4169e1' }}
+                        className="inline-block text-xs px-3 py-1 rounded-full font-medium"
+                        style={getStatusBadgeStyle(project.status)}
                       >
-                        {report.type}
+                        {project.status}
                       </span>
                     </div>
-                    <button
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-md mt-2"
-                      style={{ backgroundColor: '#a7fc00', color: '#001f54' }}
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
 
-          {/* Bottom Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Communication History */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <MessageCircle className="w-6 h-6" style={{ color: '#4169e1' }} />
-                  <h2 className="text-2xl font-semibold" style={{ color: '#001f54' }}>
-                    Communication History
-                  </h2>
-                </div>
-                <button className="text-sm hover:underline" style={{ color: '#4169e1' }}>
-                  View All
-                </button>
-              </div>
-
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex gap-3 ${msg.isClient ? 'flex-row-reverse' : ''}`}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-medium"
-                      style={{
-                        backgroundColor: msg.isClient ? '#a7fc00' : '#4169e1',
-                        color: msg.isClient ? '#001f54' : 'white',
-                      }}
-                    >
-                      {msg.initials}
+                  {/* Progress Bar */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-600">
+                        Progress
+                      </span>
+                      <span
+                        className="text-sm font-semibold"
+                        style={{ color: "#4169e1" }}
+                      >
+                        {project.progress}%
+                      </span>
                     </div>
-                    <div className={`flex-1 ${msg.isClient ? 'items-end' : ''}`}>
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <p
-                          className="text-sm font-medium"
-                          style={{ color: '#001f54' }}
-                        >
-                          {msg.sender}
-                        </p>
-                        <span className="text-xs text-gray-400">{msg.timestamp}</span>
-                      </div>
+                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className={`p-3 rounded-lg ${
-                          msg.isClient ? 'bg-gray-100' : 'bg-blue-50'
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${project.progress}%`,
+                          backgroundColor: project.statusColor,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Milestone Summary */}
+                  <div className="mb-3">
+                    <p className="text-sm text-gray-600 font-medium mb-1">
+                      Key Milestone:
+                    </p>
+                    <p className="text-sm text-gray-700">{project.milestone}</p>
+                  </div>
+
+                  {/* Last Update */}
+                  <div className="flex items-center text-xs text-gray-500">
+                    <Clock className="w-3.5 h-3.5 mr-1" />
+                    Last updated {project.lastUpdate}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Sidebar - Activity Feed */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                {/* Header with Unread Indicator */}
+                <div className="flex items-center justify-between mb-6">
+                  <h2
+                    className="text-xl font-semibold"
+                    style={{ color: "#001f54" }}
+                  >
+                    Recent Activity
+                  </h2>
+                  {unreadCount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-5 h-5" style={{ color: "#4169e1" }} />
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={{ backgroundColor: "#ff4444" }}
+                      >
+                        {unreadCount}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Activity Feed */}
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {recentActivities.map((activity) => {
+                    const IconComponent = activity.icon;
+                    return (
+                      <div
+                        key={activity.id}
+                        className={`p-4 rounded-lg border transition-all duration-200 ${
+                          activity.unread
+                            ? "bg-blue-50 border-blue-200"
+                            : "bg-gray-50 border-gray-200"
                         }`}
                       >
-                        <p className="text-sm text-gray-700">{msg.message}</p>
+                        <div className="flex gap-3">
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{
+                              backgroundColor: `${activity.iconColor}20`,
+                            }}
+                          >
+                            <IconComponent
+                              className="w-5 h-5"
+                              style={{ color: activity.iconColor }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4
+                              className="text-sm font-semibold mb-1"
+                              style={{ color: "#001f54" }}
+                            >
+                              {activity.title}
+                              {activity.unread && (
+                                <span
+                                  className="ml-2 w-2 h-2 rounded-full inline-block"
+                                  style={{ backgroundColor: "#4169e1" }}
+                                />
+                              )}
+                            </h4>
+                            <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                              {activity.description}
+                            </p>
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {activity.timestamp}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Quick Reply */}
-              <div className="mt-4 pt-4 border-t" style={{ borderColor: '#e5e7eb' }}>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    className="flex-1 px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2"
-                    style={{ borderColor: '#e5e7eb', '--tw-ring-color': '#4169e1' } as React.CSSProperties}
-                  />
-                  <button
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:shadow-md"
-                    style={{ backgroundColor: '#4169e1' }}
-                  >
-                    Send
-                  </button>
+                    );
+                  })}
                 </div>
-              </div>
-            </div>
 
-            {/* Upcoming Schedule */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Calendar className="w-6 h-6" style={{ color: '#4169e1' }} />
-                <h2 className="text-2xl font-semibold" style={{ color: '#001f54' }}>
-                  Upcoming Schedule
-                </h2>
+                {/* View All Button */}
+                <button
+                  className="w-full mt-4 px-4 py-2 rounded-lg text-sm font-medium hover:shadow-md transition-all"
+                  style={{ backgroundColor: "#a7fc00", color: "#001f54" }}
+                >
+                  View All Activity
+                </button>
               </div>
-
-              <div className="space-y-3">
-                {upcomingEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="p-4 rounded-lg border-l-4 hover:shadow-md transition-all duration-200"
-                    style={{
-                      backgroundColor: event.type === 'meeting' ? '#f0f9ff' : '#fff3e0',
-                      borderLeftColor: event.type === 'meeting' ? '#4169e1' : '#ff9800',
-                    }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-sm" style={{ color: '#001f54' }}>
-                        {event.title}
-                      </h4>
-                      <span
-                        className="text-xs px-2 py-1 rounded-full font-medium"
-                        style={{
-                          backgroundColor: event.type === 'meeting' ? '#4169e120' : '#ff980020',
-                          color: event.type === 'meeting' ? '#4169e1' : '#ff9800',
-                        }}
-                      >
-                        {event.type.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {event.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {event.time}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add Event Button */}
-              <button
-                className="w-full mt-4 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:shadow-md"
-                style={{ backgroundColor: '#a7fc00', color: '#001f54' }}
-              >
-                + Schedule New Meeting
-              </button>
             </div>
           </div>
         </div>
