@@ -252,7 +252,7 @@ function App() {
       />
 
       <Route
-        path="/client/project"
+        path="/client/projects"
         element={
           <ProtectedRoute roles={["CLIENT"]}>
             {" "}
