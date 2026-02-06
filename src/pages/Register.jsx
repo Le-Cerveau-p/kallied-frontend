@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api/client";
+import { api } from "../api/index";
 import {
   UserIcon,
   EnvelopeIcon,
@@ -22,7 +22,7 @@ import {
   TriangleAlert,
   X,
   Trash2,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -41,12 +41,10 @@ export default function Register() {
 
     if (!form.name) e.name = "Full name is required";
     if (!form.email) e.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email))
-      e.email = "Invalid email format";
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Invalid email format";
 
     if (!form.password) e.password = "Password required";
-    else if (form.password.length < 6)
-      e.password = "Minimum 6 characters";
+    else if (form.password.length < 6) e.password = "Minimum 6 characters";
 
     if (form.confirmPassword !== form.password)
       e.confirmPassword = "Passwords do not match";
@@ -63,30 +61,38 @@ export default function Register() {
 
     // Backend integration comes next
     try {
-          await api.post("/auth/register", {
-            name: form.name,
-            email: form.email,
-            password: form.password,
-          });
+      await api.post("/auth/register", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      });
 
-          window.location.href = "/login";
-           
-        } catch (err) {
-            setErrors({
-            api: err?.response?.data?.message || "Signup failed",
-            });
-        } finally {
-            setLoading(false);
-        }
+      window.location.href = "/login";
+    } catch (err) {
+      setErrors({
+        api: err?.response?.data?.message || "Signup failed",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #001f54 0%, #4169e1 50%, #a7fc00 100%)' }}>
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{
+        background:
+          "linear-gradient(135deg, #001f54 0%, #4169e1 50%, #a7fc00 100%)",
+      }}
+    >
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8">
-        <h2 className="text-2xl font-bold text-center" style={{ color: '#001f54' }}>Create Account</h2>
-        <p className="text-sm text-gray-500 text-center">
-          Register with us
-        </p>
+        <h2
+          className="text-2xl font-bold text-center"
+          style={{ color: "#001f54" }}
+        >
+          Create Account
+        </h2>
+        <p className="text-sm text-gray-500 text-center">Register with us</p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {/* Name */}
@@ -98,9 +104,7 @@ export default function Register() {
                 className="w-full pl-10 py-2 border rounded-lg bg-gray-50"
                 placeholder="John Doe"
                 value={form.name}
-                onChange={(e) =>
-                  setForm({ ...form, name: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </div>
             {errors.name && (
@@ -117,9 +121,7 @@ export default function Register() {
                 className="w-full pl-10 py-2 border rounded-lg bg-gray-50"
                 placeholder="you@example.com"
                 value={form.email}
-                onChange={(e) =>
-                  setForm({ ...form, email: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
             {errors.email && (
@@ -137,9 +139,7 @@ export default function Register() {
                 className="w-full pl-10 pr-10 py-2 border rounded-lg bg-gray-50"
                 placeholder="Enter password"
                 value={form.password}
-                onChange={(e) =>
-                  setForm({ ...form, password: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
               />
               <button
                 type="button"
@@ -157,9 +157,7 @@ export default function Register() {
 
           {/* Confirm */}
           <div>
-            <label className="text-sm font-medium">
-              Confirm Password
-            </label>
+            <label className="text-sm font-medium">Confirm Password</label>
             <input
               type="password"
               className="w-full py-2 border rounded-lg bg-gray-50 px-3"
@@ -172,9 +170,7 @@ export default function Register() {
               }
             />
             {errors.confirmPassword && (
-              <p className="text-red-500 text-xs">
-                {errors.confirmPassword}
-              </p>
+              <p className="text-red-500 text-xs">{errors.confirmPassword}</p>
             )}
           </div>
 
@@ -185,16 +181,16 @@ export default function Register() {
               loading
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-blue-800 to-blue-500 text-white hover:opacity-90"
-                   }`}
-            >
-              {loading ? (
-                  <>
-                    <Loader size={20} className="animate-spin" /> 
-                    Creating account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
+            }`}
+          >
+            {loading ? (
+              <>
+                <Loader size={20} className="animate-spin" />
+                Creating account...
+              </>
+            ) : (
+              "Create Account"
+            )}
           </button>
         </form>
       </div>

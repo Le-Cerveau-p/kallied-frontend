@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import {
@@ -17,26 +17,35 @@ import {
   FileText,
   AlertCircle,
 } from "lucide-react";
+import { getAdminProjects } from "../../api/admin";
+import { getStaffUsers } from "../../api/users";
+
+interface UserSummary {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface ProjectStaff {
+  staff: UserSummary;
+}
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
-  client: string;
-  status: "Pending" | "In Progress" | "Completed";
-  assignedStaff: string[];
-  startDate: string;
-  expectedCompletion: string;
-  budget: string;
-  description: string;
-  approvalHistory: ApprovalEvent[];
+  description?: string;
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
+  createdAt: string;
+  eCD?: string | null;
+  client: UserSummary;
+  staff: ProjectStaff[];
   updates: ProjectUpdate[];
 }
 
-interface ApprovalEvent {
-  id: number;
-  action: string;
-  approvedBy: string;
-  date: string;
+interface StaffUser {
+  id: string;
+  name: string;
+  email: string;
 }
 
 interface ProjectUpdate {
@@ -50,281 +59,75 @@ interface ProjectUpdate {
 export default function AdminProjectsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "All" | "Pending" | "In Progress" | "Completed"
+    "All" | "PENDING" | "IN_PROGRESS" | "COMPLETED"
   >("All");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showAssignStaffDialog, setShowAssignStaffDialog] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
 
-  // Mock project data
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: 1,
-      name: "E-Commerce Platform Redesign",
-      client: "TechCorp Inc.",
-      status: "In Progress",
-      assignedStaff: ["Sarah Johnson", "Mike Chen"],
-      startDate: "Jan 10, 2026",
-      expectedCompletion: "Mar 15, 2026",
-      budget: "$45,000",
-      description:
-        "Complete redesign of the e-commerce platform with modern UI/UX and improved performance.",
-      approvalHistory: [
-        {
-          id: 1,
-          action: "Project Approved",
-          approvedBy: "Admin",
-          date: "Jan 8, 2026",
-        },
-        {
-          id: 2,
-          action: "Budget Approved",
-          approvedBy: "Admin",
-          date: "Jan 9, 2026",
-        },
-      ],
-      updates: [
-        {
-          id: 1,
-          title: "Design Phase Completed",
-          description: "All wireframes and mockups approved by client",
-          date: "Jan 20, 2026",
-          author: "Sarah Johnson",
-        },
-        {
-          id: 2,
-          title: "Development Started",
-          description: "Frontend development in progress",
-          date: "Jan 25, 2026",
-          author: "Mike Chen",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Mobile App Development",
-      client: "StartupXYZ",
-      status: "Pending",
-      assignedStaff: [],
-      startDate: "Feb 1, 2026",
-      expectedCompletion: "Apr 30, 2026",
-      budget: "$32,000",
-      description:
-        "Native mobile app for iOS and Android platforms with user authentication and payment integration.",
-      approvalHistory: [],
-      updates: [],
-    },
-    {
-      id: 3,
-      name: "Cloud Migration Project",
-      client: "Enterprise Co.",
-      status: "Pending",
-      assignedStaff: [],
-      startDate: "Feb 5, 2026",
-      expectedCompletion: "May 20, 2026",
-      budget: "$78,000",
-      description:
-        "Migration of on-premise infrastructure to AWS cloud with zero downtime requirement.",
-      approvalHistory: [],
-      updates: [],
-    },
-    {
-      id: 4,
-      name: "Website Redesign",
-      client: "Creative Agency",
-      status: "Completed",
-      assignedStaff: ["Emily Rodriguez", "David Kim"],
-      startDate: "Nov 1, 2025",
-      expectedCompletion: "Dec 15, 2025",
-      budget: "$28,000",
-      description:
-        "Complete website redesign with modern design and responsive layout.",
-      approvalHistory: [
-        {
-          id: 1,
-          action: "Project Approved",
-          approvedBy: "Admin",
-          date: "Oct 28, 2025",
-        },
-        {
-          id: 2,
-          action: "Project Completed",
-          approvedBy: "Admin",
-          date: "Dec 15, 2025",
-        },
-      ],
-      updates: [
-        {
-          id: 1,
-          title: "Design Approved",
-          description: "Client approved all designs",
-          date: "Nov 10, 2025",
-          author: "Emily Rodriguez",
-        },
-        {
-          id: 2,
-          title: "Development Complete",
-          description: "All pages deployed to production",
-          date: "Dec 12, 2025",
-          author: "David Kim",
-        },
-      ],
-    },
-    {
-      id: 5,
-      name: "API Integration Project",
-      client: "FinTech Solutions",
-      status: "In Progress",
-      assignedStaff: ["Lisa Anderson"],
-      startDate: "Jan 15, 2026",
-      expectedCompletion: "Feb 28, 2026",
-      budget: "$18,500",
-      description:
-        "Integration with third-party payment APIs and compliance system.",
-      approvalHistory: [
-        {
-          id: 1,
-          action: "Project Approved",
-          approvedBy: "Admin",
-          date: "Jan 12, 2026",
-        },
-      ],
-      updates: [
-        {
-          id: 1,
-          title: "API Documentation Review",
-          description: "Reviewed all API documentation",
-          date: "Jan 18, 2026",
-          author: "Lisa Anderson",
-        },
-      ],
-    },
-  ]);
+  useEffect(() => {
+    getStaffUsers().then(setStaffUsers);
+  }, []);
 
-  // Available staff for assignment
-  const availableStaff = [
-    "Sarah Johnson",
-    "Mike Chen",
-    "Emily Rodriguez",
-    "David Kim",
-    "Lisa Anderson",
-    "Robert Wilson",
-    "Jennifer Taylor",
-    "Michael Brown",
-  ];
+  useEffect(() => {
+    getAdminProjects()
+      .then(setProjects)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const formatStatus = (status: Project["status"]) => {
     switch (status) {
-      case "Pending":
+      case "PENDING":
+        return "Pending";
+      case "IN_PROGRESS":
+        return "In Progress";
+      case "COMPLETED":
+        return "Completed";
+    }
+  };
+
+  const assignableStaff = selectedProject
+    ? staffUsers.filter(
+        (staff) =>
+          !selectedProject.staff.some(
+            (assigned) => assigned.staff.id === staff.id,
+          ),
+      )
+    : [];
+
+  const getStatusColor = (status: Project["status"]) => {
+    switch (status) {
+      case "PENDING":
         return { bg: "#fff3e0", text: "#ff9800" };
-      case "In Progress":
+      case "IN_PROGRESS":
         return { bg: "#e3f2fd", text: "#4169e1" };
-      case "Completed":
+      case "COMPLETED":
         return { bg: "#f1f8e9", text: "#558b2f" };
-      default:
-        return { bg: "#f5f5f5", text: "#717182" };
     }
   };
 
   const filteredProjects = projects.filter((project) => {
+    console.log(projects);
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.client.toLowerCase().includes(searchQuery.toLowerCase());
+      project.client.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "All" || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleApproveProject = () => {
-    if (selectedProject) {
-      setProjects(
-        projects.map((p) =>
-          p.id === selectedProject.id
-            ? {
-                ...p,
-                status: "In Progress",
-                approvalHistory: [
-                  ...p.approvalHistory,
-                  {
-                    id: p.approvalHistory.length + 1,
-                    action: "Project Approved",
-                    approvedBy: "Admin",
-                    date: "Jan 24, 2026",
-                  },
-                ],
-              }
-            : p,
-        ),
-      );
-      setShowApproveDialog(false);
-      setSelectedProject(null);
-    }
-  };
+  const handleApproveProject = () => {};
 
-  const handleCompleteProject = () => {
-    if (selectedProject) {
-      setProjects(
-        projects.map((p) =>
-          p.id === selectedProject.id
-            ? {
-                ...p,
-                status: "Completed",
-                approvalHistory: [
-                  ...p.approvalHistory,
-                  {
-                    id: p.approvalHistory.length + 1,
-                    action: "Project Completed",
-                    approvedBy: "Admin",
-                    date: "Jan 24, 2026",
-                  },
-                ],
-              }
-            : p,
-        ),
-      );
-      setShowCompleteDialog(false);
-      setSelectedProject(null);
-    }
-  };
+  const handleCompleteProject = () => {};
 
-  const handleAssignStaff = (staffName: string) => {
-    if (selectedProject) {
-      setProjects(
-        projects.map((p) =>
-          p.id === selectedProject.id
-            ? { ...p, assignedStaff: [...p.assignedStaff, staffName] }
-            : p,
-        ),
-      );
-      setSelectedProject({
-        ...selectedProject,
-        assignedStaff: [...selectedProject.assignedStaff, staffName],
-      });
-    }
-  };
+  const handleAssignStaff = (staffName: string) => {};
 
-  const handleRemoveStaff = (staffName: string) => {
-    if (selectedProject) {
-      setProjects(
-        projects.map((p) =>
-          p.id === selectedProject.id
-            ? {
-                ...p,
-                assignedStaff: p.assignedStaff.filter((s) => s !== staffName),
-              }
-            : p,
-        ),
-      );
-      setSelectedProject({
-        ...selectedProject,
-        assignedStaff: selectedProject.assignedStaff.filter(
-          (s) => s !== staffName,
-        ),
-      });
-    }
-  };
+  const handleRemoveStaff = (staffName: string) => {};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -363,7 +166,7 @@ export default function AdminProjectsManagement() {
                       {selectedProject.name}
                     </h2>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                      <span>Client: {selectedProject.client}</span>
+                      <span>Client: {selectedProject.client?.name}</span>
                       <span>•</span>
                       <span
                         className="px-3 py-1 rounded-full text-xs font-medium"
@@ -374,14 +177,14 @@ export default function AdminProjectsManagement() {
                           color: getStatusColor(selectedProject.status).text,
                         }}
                       >
-                        {selectedProject.status}
+                        {formatStatus(selectedProject.status)}
                       </span>
                       <span>•</span>
-                      <span>Budget: {selectedProject.budget}</span>
+                      <span>Budget: 0{/* {selectedProject.budget} */}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    {selectedProject.status === "Pending" && (
+                    {selectedProject.status === "PENDING" && (
                       <button
                         onClick={() => setShowApproveDialog(true)}
                         className="px-4 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
@@ -391,7 +194,7 @@ export default function AdminProjectsManagement() {
                         Approve Project
                       </button>
                     )}
-                    {selectedProject.status === "In Progress" && (
+                    {selectedProject.status === "IN_PROGRESS" && (
                       <button
                         onClick={() => setShowCompleteDialog(true)}
                         className="px-4 py-2 rounded-lg text-white font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
@@ -446,7 +249,9 @@ export default function AdminProjectsManagement() {
                             className="mt-1 font-medium"
                             style={{ color: "#001f54" }}
                           >
-                            {selectedProject.startDate}
+                            {new Date(
+                              selectedProject.createdAt,
+                            ).toLocaleDateString()}
                           </p>
                         </div>
                         <div>
@@ -457,7 +262,11 @@ export default function AdminProjectsManagement() {
                             className="mt-1 font-medium"
                             style={{ color: "#001f54" }}
                           >
-                            {selectedProject.expectedCompletion}
+                            {selectedProject.eCD
+                              ? new Date(
+                                  selectedProject.eCD,
+                                ).toLocaleDateString()
+                              : "—"}
                           </p>
                         </div>
                       </div>
@@ -504,7 +313,7 @@ export default function AdminProjectsManagement() {
                   </div>
 
                   {/* Approval History */}
-                  <div className="bg-white rounded-xl shadow-md p-6">
+                  {/* <div className="bg-white rounded-xl shadow-md p-6">
                     <h3 className="text-xl mb-4" style={{ color: "#001f54" }}>
                       Approval History
                     </h3>
@@ -548,7 +357,7 @@ export default function AdminProjectsManagement() {
                         ))}
                       </div>
                     )}
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Right Column - Assigned Staff */}
@@ -566,15 +375,15 @@ export default function AdminProjectsManagement() {
                         <UserPlus className="w-5 h-5" />
                       </button>
                     </div>
-                    {selectedProject.assignedStaff.length === 0 ? (
+                    {selectedProject.staff.length === 0 ? (
                       <p className="text-gray-500 text-center py-8 text-sm">
                         No staff assigned yet
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {selectedProject.assignedStaff.map((staff) => (
+                        {selectedProject.staff.map((s) => (
                           <div
-                            key={staff}
+                            key={s.staff.id}
                             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                           >
                             <div className="flex items-center gap-3">
@@ -582,7 +391,7 @@ export default function AdminProjectsManagement() {
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
                                 style={{ backgroundColor: "#4169e1" }}
                               >
-                                {staff
+                                {s.staff.name
                                   .split(" ")
                                   .map((n) => n[0])
                                   .join("")}
@@ -591,11 +400,11 @@ export default function AdminProjectsManagement() {
                                 className="text-sm font-medium"
                                 style={{ color: "#001f54" }}
                               >
-                                {staff}
+                                {s.staff.name}
                               </span>
                             </div>
                             <button
-                              onClick={() => handleRemoveStaff(staff)}
+                              onClick={() => handleRemoveStaff(s.staff.id)}
                               className="p-1 rounded-lg hover:bg-red-50 transition-colors"
                               style={{ color: "#d4183d" }}
                             >
@@ -619,7 +428,7 @@ export default function AdminProjectsManagement() {
                           className="font-medium"
                           style={{ color: "#001f54" }}
                         >
-                          {selectedProject.assignedStaff.length}
+                          {selectedProject.staff.length}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -631,7 +440,7 @@ export default function AdminProjectsManagement() {
                           {selectedProject.updates.length}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
+                      {/* <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Approvals</span>
                         <span
                           className="font-medium"
@@ -639,7 +448,7 @@ export default function AdminProjectsManagement() {
                         >
                           {selectedProject.approvalHistory.length}
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
@@ -724,7 +533,7 @@ export default function AdminProjectsManagement() {
                     <h3 className="text-gray-600 text-sm">Pending Approval</h3>
                   </div>
                   <p className="text-3xl" style={{ color: "#001f54" }}>
-                    {projects.filter((p) => p.status === "Pending").length}
+                    {projects.filter((p) => p.status === "PENDING").length}
                   </p>
                 </div>
 
@@ -739,7 +548,7 @@ export default function AdminProjectsManagement() {
                     <h3 className="text-gray-600 text-sm">In Progress</h3>
                   </div>
                   <p className="text-3xl" style={{ color: "#001f54" }}>
-                    {projects.filter((p) => p.status === "In Progress").length}
+                    {projects.filter((p) => p.status === "IN_PROGRESS").length}
                   </p>
                 </div>
 
@@ -757,7 +566,7 @@ export default function AdminProjectsManagement() {
                     <h3 className="text-gray-600 text-sm">Completed</h3>
                   </div>
                   <p className="text-3xl" style={{ color: "#001f54" }}>
-                    {projects.filter((p) => p.status === "Completed").length}
+                    {projects.filter((p) => p.status === "COMPLETED").length}
                   </p>
                 </div>
               </div>
@@ -816,7 +625,7 @@ export default function AdminProjectsManagement() {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-gray-600">
-                              {project.client}
+                              {project.client.name}
                             </td>
                             <td className="px-6 py-4">
                               <span
@@ -832,40 +641,40 @@ export default function AdminProjectsManagement() {
                               </span>
                             </td>
                             <td className="px-6 py-4">
-                              {project.assignedStaff.length === 0 ? (
+                              {project.staff.length === 0 ? (
                                 <span className="text-gray-400 text-sm">
                                   Unassigned
                                 </span>
                               ) : (
                                 <div className="flex items-center gap-1">
-                                  {project.assignedStaff
-                                    .slice(0, 2)
-                                    .map((staff, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
-                                        style={{ backgroundColor: "#4169e1" }}
-                                        title={staff}
-                                      >
-                                        {staff
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join("")}
-                                      </div>
-                                    ))}
-                                  {project.assignedStaff.length > 2 && (
+                                  {project.staff.slice(0, 2).map((s) => (
+                                    <div
+                                      key={s.staff.id}
+                                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
+                                      style={{ backgroundColor: "#4169e1" }}
+                                      title={s.staff.name}
+                                    >
+                                      {s.staff.name
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")}
+                                    </div>
+                                  ))}
+                                  {project.staff.length > 2 && (
                                     <span className="text-xs text-gray-500 ml-1">
-                                      +{project.assignedStaff.length - 2}
+                                      +{project.staff.length - 2}
                                     </span>
                                   )}
                                 </div>
                               )}
                             </td>
                             <td className="px-6 py-4 text-gray-600">
-                              {project.startDate}
+                              {new Date(project.createdAt).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 text-gray-600">
-                              {project.expectedCompletion}
+                              {project.eCD
+                                ? new Date(project.eCD).toLocaleDateString()
+                                : "—"}
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
@@ -877,7 +686,7 @@ export default function AdminProjectsManagement() {
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
-                                {project.status === "Pending" && (
+                                {project.status === "PENDING" && (
                                   <button
                                     onClick={() => {
                                       setSelectedProject(project);
@@ -955,7 +764,7 @@ export default function AdminProjectsManagement() {
               <button
                 onClick={() => {
                   setShowApproveDialog(false);
-                  if (!selectedProject.assignedStaff.length) {
+                  if (!selectedProject.staff.length) {
                     setSelectedProject(null);
                   }
                 }}
@@ -1040,15 +849,16 @@ export default function AdminProjectsManagement() {
               </button>
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {availableStaff
-                .filter(
-                  (staff) => !selectedProject.assignedStaff.includes(staff),
-                )
-                .map((staff) => (
+              {assignableStaff.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  All staff already assigned
+                </p>
+              ) : (
+                assignableStaff.map((staff) => (
                   <button
-                    key={staff}
+                    key={staff.id}
                     onClick={() => {
-                      handleAssignStaff(staff);
+                      handleAssignStaff(staff.id);
                       setShowAssignStaffDialog(false);
                     }}
                     className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
@@ -1057,16 +867,20 @@ export default function AdminProjectsManagement() {
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm"
                       style={{ backgroundColor: "#4169e1" }}
                     >
-                      {staff
+                      {staff.name
                         .split(" ")
                         .map((n) => n[0])
                         .join("")}
                     </div>
-                    <span className="font-medium" style={{ color: "#001f54" }}>
-                      {staff}
-                    </span>
+                    <div>
+                      <p className="font-medium" style={{ color: "#001f54" }}>
+                        {staff.name}
+                      </p>
+                      <p className="text-xs text-gray-500">{staff.email}</p>
+                    </div>
                   </button>
-                ))}
+                ))
+              )}
             </div>
           </div>
         </div>

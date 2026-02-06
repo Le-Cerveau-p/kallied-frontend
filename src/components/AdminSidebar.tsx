@@ -70,25 +70,25 @@ export default function AdminSidebar({
       icon: ChartBar,
       href: "/admin/analytics",
     },
-    {
-      id: "billing",
-      label: "Billing & Contracts",
-      icon: Receipt,
-      href: "/admin/billing",
-    },
+    // {
+    //   id: "billing",
+    //   label: "Billing & Contracts",
+    //   icon: Receipt,
+    //   href: "/admin/billing",
+    // },
     { id: "logs", label: "Activity Logs", icon: Activity, href: "/admin/logs" },
-    {
-      id: "resources",
-      label: "Resources",
-      icon: FolderOpen,
-      href: "/admin/resources",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: Settings,
-      href: "/admin/settings",
-    },
+    // {
+    //   id: "resources",
+    //   label: "Resources",
+    //   icon: FolderOpen,
+    //   href: "/admin/resources",
+    // },
+    // {
+    //   id: "settings",
+    //   label: "Settings",
+    //   icon: Settings,
+    //   href: "/admin/settings",
+    // },
   ];
 
   const handleItemClick = (href: string) => {

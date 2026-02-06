@@ -1,5 +1,13 @@
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import { useEffect, useState } from "react";
+import { adminSocket } from "../../socket/adminSocket";
+import {
+  getAdminDashboard,
+  getPendingProjects,
+  getPendingProcurements,
+  getAdminCharts,
+} from "../../api/admin";
 import {
   Briefcase,
   Users,
@@ -19,105 +27,84 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
+import { api } from "../../api/index";
 
 export default function AdminDashboard() {
-  // Mock data for pending project approvals
-  const pendingProjects = [
-    {
-      id: 1,
-      name: "E-Commerce Platform Redesign",
-      requestedBy: "Sarah Johnson",
-      client: "TechCorp Inc.",
-      dateSubmitted: "Jan 20, 2026",
-      budget: "$45,000",
-    },
-    {
-      id: 2,
-      name: "Mobile App Development",
-      requestedBy: "Mike Chen",
-      client: "StartupXYZ",
-      dateSubmitted: "Jan 21, 2026",
-      budget: "$32,000",
-    },
-    {
-      id: 3,
-      name: "Cloud Migration Project",
-      requestedBy: "Emily Rodriguez",
-      client: "Enterprise Co.",
-      dateSubmitted: "Jan 22, 2026",
-      budget: "$78,000",
-    },
-  ];
+  const [stats, setStats] = useState<any>(null);
+  const [pendingProjects, setPendingProjects] = useState<any[]>([]);
+  const [pendingProcurement, setPendingProcurement] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [projectStatusData, setProjectStatusData] = useState<any[]>([]);
+  const STATUS_COLORS: Record<string, string> = {
+    ACTIVE: "#22c55e",
+    COMPLETED: "#3b82f6",
+    ON_HOLD: "#f59e0b",
+    CANCELLED: "#ef4444",
+  };
 
-  // Mock data for pending procurement approvals
-  const pendingProcurement = [
-    {
-      id: 1,
-      item: "AWS Cloud Credits",
-      project: "Cloud Migration Project",
-      requestedBy: "David Kim",
-      dateSubmitted: "Jan 21, 2026",
-      amount: "$5,200",
-    },
-    {
-      id: 2,
-      item: "Design Software Licenses",
-      project: "E-Commerce Platform Redesign",
-      requestedBy: "Sarah Johnson",
-      dateSubmitted: "Jan 22, 2026",
-      amount: "$1,800",
-    },
-    {
-      id: 3,
-      item: "Server Hardware",
-      project: "Infrastructure Upgrade",
-      requestedBy: "Lisa Anderson",
-      dateSubmitted: "Jan 23, 2026",
-      amount: "$12,500",
-    },
-  ];
+  useEffect(() => {
+    async function loadDashboard() {
+      const dashboard = await getAdminDashboard();
+      const projects = await getPendingProjects();
+      const procurements = await getPendingProcurements();
 
-  // Mock data for recent activity
-  const recentActivity = [
-    {
-      id: 1,
-      user: "Admin",
-      action: "Approved project: Website Redesign",
-      time: "30 minutes ago",
-    },
-    {
-      id: 2,
-      user: "Sarah Johnson",
-      action: "Submitted new project proposal",
-      time: "1 hour ago",
-    },
-    {
-      id: 3,
-      user: "Admin",
-      action: "Rejected procurement request",
-      time: "2 hours ago",
-    },
-    {
-      id: 4,
-      user: "Mike Chen",
-      action: "Updated project milestone",
-      time: "3 hours ago",
-    },
-    {
-      id: 5,
-      user: "Admin",
-      action: "Approved procurement: Cloud Services",
-      time: "4 hours ago",
-    },
-  ];
+      setStats(dashboard.stats);
+      setRecentActivity(dashboard.recentActivity);
+      setPendingProjects(projects);
+      setPendingProcurement(procurements);
 
-  // Mock data for project status breakdown
-  const projectStatusData = [
-    { name: "Pending", value: 8, color: "#ff9800" },
-    { name: "In Progress", value: 24, color: "#4169e1" },
-    { name: "Completed", value: 15, color: "#a7fc00" },
-    { name: "On Hold", value: 3, color: "#717182" },
-  ];
+      console.log("dash: ", dashboard);
+    }
+
+    loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    adminSocket.on("project-approved", () => {
+      getAdminDashboard().then((d) => setStats(d.stats));
+    });
+
+    adminSocket.on("procurement-submitted", () => {
+      getPendingProcurements().then(setPendingProcurement);
+    });
+
+    return () => {
+      adminSocket.off("project-approved");
+      adminSocket.off("procurement-submitted");
+    };
+  }, []);
+
+  useEffect(() => {
+    getAdminCharts().then((data) => {
+      const formatted = data.projectsByStatus.map((item: any) => ({
+        name: item.status,
+        value: item._count._all,
+        color: STATUS_COLORS[item.status] || "#8884d8",
+      }));
+
+      setProjectStatusData(formatted);
+    });
+  }, []);
+
+  const approveProject = async (projectId: string) => {
+    await api.post(`/projects/${projectId}/approve`);
+    setPendingProjects((prev) => prev.filter((p) => p.id !== projectId));
+  };
+
+  const rejectProject = async (projectId: string) => {
+    await api.post(`/projects/${projectId}/reject`);
+    setPendingProjects((prev) => prev.filter((p) => p.id !== projectId));
+  };
+
+  const approveProcurement = async (procurementId: string) => {
+    await api.post(`/procurement/${procurementId}/approve`);
+    setPendingProcurement((prev) => prev.filter((p) => p.id !== procurementId));
+  };
+
+  const rejectProcurement = async (procurementId: string) => {
+    await api.post(`/procurement/${procurementId}/reject`);
+    setPendingProcurement((prev) => prev.filter((p) => p.id !== procurementId));
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -150,7 +137,7 @@ export default function AdminDashboard() {
               </div>
               <h3 className="text-gray-600 text-sm mb-2">Total Projects</h3>
               <p className="text-3xl mb-3" style={{ color: "#001f54" }}>
-                50
+                {stats?.totalProjects}
               </p>
               <div className="flex items-center gap-3 text-xs text-gray-600">
                 <span className="flex items-center gap-1">
@@ -158,21 +145,21 @@ export default function AdminDashboard() {
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: "#ff9800" }}
                   ></span>
-                  8 Pending
+                  {stats?.pendingProjects} Pending
                 </span>
                 <span className="flex items-center gap-1">
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: "#4169e1" }}
                   ></span>
-                  24 In Progress
+                  {stats?.inProgressProjects} In Progress
                 </span>
                 <span className="flex items-center gap-1">
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: "#a7fc00" }}
                   ></span>
-                  15 Completed
+                  {stats?.completedProjects} Completed
                 </span>
               </div>
             </div>
@@ -218,7 +205,9 @@ export default function AdminDashboard() {
               <p className="text-3xl mb-3" style={{ color: "#001f54" }}>
                 {pendingProcurement.length}
               </p>
-              <p className="text-xs text-gray-500">Total value: $19,500</p>
+              <p className="text-xs text-gray-500">
+                Total value: ₦{stats?.procurementValue}
+              </p>
             </div>
 
             {/* Active Clients */}
@@ -233,9 +222,11 @@ export default function AdminDashboard() {
               </div>
               <h3 className="text-gray-600 text-sm mb-2">Active Clients</h3>
               <p className="text-3xl mb-3" style={{ color: "#001f54" }}>
-                32
+                {stats?.activeClients}
               </p>
-              <p className="text-xs text-gray-500">5 new this month</p>
+              <p className="text-xs text-gray-500">
+                {stats?.newClientsThisMonth} new this month
+              </p>
             </div>
           </div>
 
@@ -291,6 +282,7 @@ export default function AdminDashboard() {
                               backgroundColor: "#a7fc00",
                               color: "#001f54",
                             }}
+                            onClick={() => approveProject(project.id)}
                           >
                             <CheckCircle className="w-4 h-4" />
                             Approve
@@ -298,6 +290,7 @@ export default function AdminDashboard() {
                           <button
                             className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 hover:bg-gray-300 transition-colors flex items-center gap-1"
                             style={{ color: "#001f54" }}
+                            onClick={() => rejectProject(project.id)}
                           >
                             <XCircle className="w-4 h-4" />
                             Reject
@@ -363,6 +356,7 @@ export default function AdminDashboard() {
                               backgroundColor: "#a7fc00",
                               color: "#001f54",
                             }}
+                            onClick={() => approveProcurement(item.id)}
                           >
                             <CheckCircle className="w-4 h-4" />
                             Approve
@@ -370,6 +364,7 @@ export default function AdminDashboard() {
                           <button
                             className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 hover:bg-gray-300 transition-colors flex items-center gap-1"
                             style={{ color: "#001f54" }}
+                            onClick={() => rejectProcurement(item.id)}
                           >
                             <XCircle className="w-4 h-4" />
                             Reject
@@ -455,34 +450,41 @@ export default function AdminDashboard() {
                 <h2 className="text-xl mb-6" style={{ color: "#001f54" }}>
                   Project Status Breakdown
                 </h2>
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={projectStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {projectStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e0e0e0",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                {projectStatusData.length === 0 && (
+                  <p className="text-sm text-gray-500 text-center mt-12">
+                    No project data available
+                  </p>
+                )}
+                {projectStatusData.length > 0 && (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={projectStatusData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) =>
+                          `${name} ${(percent * 100).toFixed(0)}%`
+                        }
+                        outerRadius={80}
+                        // fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {projectStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
                 <div className="mt-6 space-y-3">
                   {projectStatusData.map((status) => (
                     <div

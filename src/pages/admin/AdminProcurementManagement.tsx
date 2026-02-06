@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  getAdminProcurements,
+  approveProcurement,
+  rejectProcurement,
+} from "../../api/admin";
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import {
@@ -23,10 +28,9 @@ interface ProcurementItem {
   id: string;
   name: string;
   quantity: number;
-  unitCost: number;
-  totalCost: number;
-  supplier: string;
-  category: string;
+  unit: string;
+  estimatedCost: number;
+  type: string;
 }
 
 interface ProcurementRequest {
@@ -37,7 +41,7 @@ interface ProcurementRequest {
   requestedBy: string;
   requestedByRole: string;
   dateSubmitted: string;
-  status: "Draft" | "Submitted" | "Approved" | "Rejected";
+  status: "Draft" | "SUBMITTED" | "APPROVED" | "REJECTED";
   totalEstimatedCost: number;
   items: ProcurementItem[];
   description: string;
@@ -54,252 +58,42 @@ export default function AdminProcurementManagement() {
     useState<ProcurementRequest | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [procurementRequests, setProcurementRequests] = useState<
+    ProcurementRequest[]
+  >([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for procurement requests
-  const procurementRequests: ProcurementRequest[] = [
-    {
-      id: "PR-001",
-      title: "AWS Cloud Credits & Infrastructure",
-      project: "Cloud Migration Project",
-      projectId: "PROJ-045",
-      requestedBy: "David Kim",
-      requestedByRole: "Senior DevOps Engineer",
-      dateSubmitted: "Jan 21, 2026",
-      status: "Submitted",
-      totalEstimatedCost: 5200,
-      description:
-        "Required cloud credits and infrastructure resources for Q1 2026 cloud migration initiative.",
-      items: [
-        {
-          id: "1",
-          name: "AWS Cloud Credits",
-          quantity: 1,
-          unitCost: 3500,
-          totalCost: 3500,
-          supplier: "Amazon Web Services",
-          category: "Cloud Services",
-        },
-        {
-          id: "2",
-          name: "CloudWatch Monitoring",
-          quantity: 12,
-          unitCost: 100,
-          totalCost: 1200,
-          supplier: "Amazon Web Services",
-          category: "Monitoring",
-        },
-        {
-          id: "3",
-          name: "Route53 DNS Service",
-          quantity: 1,
-          unitCost: 500,
-          totalCost: 500,
-          supplier: "Amazon Web Services",
-          category: "Network",
-        },
-      ],
-      attachedDocuments: [
-        "AWS_Quote_Jan2026.pdf",
-        "Migration_Budget_Breakdown.xlsx",
-      ],
-      notes: "Urgent - Required by Feb 1st to maintain migration timeline",
-    },
-    {
-      id: "PR-002",
-      title: "Design Software Licenses",
-      project: "E-Commerce Platform Redesign",
-      projectId: "PROJ-032",
-      requestedBy: "Sarah Johnson",
-      requestedByRole: "Lead UX Designer",
-      dateSubmitted: "Jan 22, 2026",
-      status: "Submitted",
-      totalEstimatedCost: 1800,
-      description:
-        "Annual licenses for design tools needed for the redesign project team.",
-      items: [
-        {
-          id: "1",
-          name: "Figma Professional (3 seats)",
-          quantity: 3,
-          unitCost: 360,
-          totalCost: 1080,
-          supplier: "Figma Inc.",
-          category: "Software",
-        },
-        {
-          id: "2",
-          name: "Adobe Creative Cloud",
-          quantity: 2,
-          unitCost: 360,
-          totalCost: 720,
-          supplier: "Adobe Systems",
-          category: "Software",
-        },
-      ],
-      attachedDocuments: ["License_Quote_Figma.pdf", "Adobe_Quote.pdf"],
-    },
-    {
-      id: "PR-003",
-      title: "Server Hardware Upgrade",
-      project: "Infrastructure Upgrade",
-      projectId: "PROJ-051",
-      requestedBy: "Lisa Anderson",
-      requestedByRole: "Infrastructure Manager",
-      dateSubmitted: "Jan 23, 2026",
-      status: "Submitted",
-      totalEstimatedCost: 12500,
-      description:
-        "New server hardware for on-premise infrastructure upgrade to support growing workloads.",
-      items: [
-        {
-          id: "1",
-          name: "Dell PowerEdge R750",
-          quantity: 2,
-          unitCost: 4500,
-          totalCost: 9000,
-          supplier: "Dell Technologies",
-          category: "Hardware",
-        },
-        {
-          id: "2",
-          name: "32GB RAM Modules",
-          quantity: 8,
-          unitCost: 250,
-          totalCost: 2000,
-          supplier: "Kingston Technology",
-          category: "Hardware",
-        },
-        {
-          id: "3",
-          name: "2TB NVMe SSD",
-          quantity: 4,
-          unitCost: 375,
-          totalCost: 1500,
-          supplier: "Samsung",
-          category: "Storage",
-        },
-      ],
-      attachedDocuments: [
-        "Dell_Quote_2026.pdf",
-        "Hardware_Specs.pdf",
-        "Capacity_Planning.xlsx",
-      ],
-      notes: "Hardware needs to be delivered by Feb 15th",
-    },
-    {
-      id: "PR-004",
-      title: "Development Tools & API Subscriptions",
-      project: "Mobile App Development",
-      projectId: "PROJ-038",
-      requestedBy: "Mike Chen",
-      requestedByRole: "Mobile Development Lead",
-      dateSubmitted: "Jan 18, 2026",
-      status: "Approved",
-      totalEstimatedCost: 2400,
-      description:
-        "Monthly API subscriptions and development tools for mobile app development.",
-      items: [
-        {
-          id: "1",
-          name: "Firebase Suite (Premium)",
-          quantity: 1,
-          unitCost: 1200,
-          totalCost: 1200,
-          supplier: "Google Cloud",
-          category: "Cloud Services",
-        },
-        {
-          id: "2",
-          name: "Mapbox API Credits",
-          quantity: 1,
-          unitCost: 800,
-          totalCost: 800,
-          supplier: "Mapbox Inc.",
-          category: "API Services",
-        },
-        {
-          id: "3",
-          name: "Stripe Payment Gateway",
-          quantity: 1,
-          unitCost: 400,
-          totalCost: 400,
-          supplier: "Stripe Inc.",
-          category: "Payment Services",
-        },
-      ],
-      attachedDocuments: ["API_Quotes_Bundle.pdf"],
-    },
-    {
-      id: "PR-005",
-      title: "Testing Tools & QA Software",
-      project: "E-Commerce Platform Redesign",
-      projectId: "PROJ-032",
-      requestedBy: "Emily Rodriguez",
-      requestedByRole: "QA Manager",
-      dateSubmitted: "Jan 15, 2026",
-      status: "Rejected",
-      totalEstimatedCost: 3200,
-      description:
-        "Automated testing tools and QA software for comprehensive testing coverage.",
-      items: [
-        {
-          id: "1",
-          name: "Selenium Grid License",
-          quantity: 5,
-          unitCost: 400,
-          totalCost: 2000,
-          supplier: "BrowserStack",
-          category: "Testing",
-        },
-        {
-          id: "2",
-          name: "JIRA Test Management",
-          quantity: 10,
-          unitCost: 120,
-          totalCost: 1200,
-          supplier: "Atlassian",
-          category: "Project Management",
-        },
-      ],
-      attachedDocuments: ["Testing_Tools_Quote.pdf"],
-      rejectionReason:
-        "Budget constraints - Please resubmit with reduced scope or defer to Q2",
-    },
-    {
-      id: "PR-006",
-      title: "Office Equipment for New Hires",
-      project: "General Operations",
-      projectId: "PROJ-000",
-      requestedBy: "HR Department",
-      requestedByRole: "HR Manager",
-      dateSubmitted: "Jan 20, 2026",
-      status: "Draft",
-      totalEstimatedCost: 8500,
-      description:
-        "Office equipment and workstation setup for 5 new hires joining in February.",
-      items: [
-        {
-          id: "1",
-          name: 'MacBook Pro 16"',
-          quantity: 5,
-          unitCost: 1500,
-          totalCost: 7500,
-          supplier: "Apple Inc.",
-          category: "Hardware",
-        },
-        {
-          id: "2",
-          name: 'External Monitor 27"',
-          quantity: 5,
-          unitCost: 200,
-          totalCost: 1000,
-          supplier: "Dell",
-          category: "Peripherals",
-        },
-      ],
-      attachedDocuments: [],
-    },
-  ];
+  useEffect(() => {
+    loadProcurements();
+  }, []);
+
+  const loadProcurements = async () => {
+    setLoading(true);
+    try {
+      const data = await getAdminProcurements();
+
+      setProcurementRequests(
+        data.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          project: r.project.name,
+          projectId: r.project.id,
+          requestedBy: r.requestedBy.name,
+          requestedByRole: r.requestedBy.role,
+          dateSubmitted: new Date(r.createdAt).toLocaleDateString(),
+          status: r.status,
+          totalEstimatedCost: r.totalEstimatedCost,
+          description: r.description,
+          items: r.items,
+          attachedDocuments: r.attachments?.map((a: any) => a.fileName) ?? [],
+          notes: r.notes,
+          rejectionReason: r.rejectionReason,
+        })),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter requests based on search and status
   const filteredRequests = procurementRequests.filter((request) => {
@@ -350,10 +144,9 @@ export default function AdminProcurementManagement() {
   };
 
   // Handle approve request
-  const handleApprove = (request: ProcurementRequest) => {
-    console.log("Approving request:", request.id);
-    // In a real app, this would update the backend
-    alert(`Procurement request ${request.id} approved!`);
+  const handleApprove = async (request: ProcurementRequest) => {
+    await approveProcurement(request.id);
+    await loadProcurements();
   };
 
   // Handle reject request
@@ -363,21 +156,16 @@ export default function AdminProcurementManagement() {
   };
 
   // Submit rejection
-  const submitRejection = () => {
-    if (!rejectionReason.trim()) {
-      alert("Please provide a reason for rejection");
-      return;
-    }
-    console.log(
-      "Rejecting request:",
-      selectedRequest?.id,
-      "Reason:",
-      rejectionReason,
-    );
-    alert(`Procurement request ${selectedRequest?.id} rejected!`);
+  const submitRejection = async () => {
+    if (!selectedRequest || !rejectionReason.trim()) return;
+
+    await rejectProcurement(selectedRequest.id, rejectionReason);
+
     setShowRejectModal(false);
     setRejectionReason("");
     setSelectedRequest(null);
+
+    await loadProcurements();
   };
 
   // Generate Purchase Order
@@ -394,19 +182,28 @@ export default function AdminProcurementManagement() {
   };
 
   // Summary stats
+  const getProcurementTotal = (request: ProcurementRequest) =>
+    request.items.reduce(
+      (sum, item) => sum + (item.estimatedCost ?? 0) * item.quantity,
+      0,
+    );
   const stats = {
     total: procurementRequests.length,
-    submitted: procurementRequests.filter((r) => r.status === "Submitted")
+    submitted: procurementRequests.filter((r) => r.status === "SUBMITTED")
       .length,
-    approved: procurementRequests.filter((r) => r.status === "Approved").length,
-    rejected: procurementRequests.filter((r) => r.status === "Rejected").length,
+    approved: procurementRequests.filter((r) => r.status === "APPROVED").length,
+    rejected: procurementRequests.filter((r) => r.status === "REJECTED").length,
     totalValue: procurementRequests.reduce(
-      (sum, r) => sum + r.totalEstimatedCost,
+      (sum, r) => sum + getProcurementTotal(r),
       0,
     ),
     pendingValue: procurementRequests
-      .filter((r) => r.status === "Submitted")
-      .reduce((sum, r) => sum + r.totalEstimatedCost, 0),
+      .filter((r) => r.status === "SUBMITTED")
+      .reduce((sum, r) => sum + getProcurementTotal(r), 0),
+  };
+
+  const getUnitCost = (x, y) => {
+    return x / y;
   };
 
   return (
@@ -548,7 +345,11 @@ export default function AdminProcurementManagement() {
             </div>
 
             <div className="divide-y divide-gray-200">
-              {filteredRequests.length === 0 ? (
+              {loading ? (
+                <div className="p-12 text-center text-gray-500">
+                  Loading procurement requests...
+                </div>
+              ) : filteredRequests.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p>No procurement requests found</p>
@@ -611,7 +412,7 @@ export default function AdminProcurementManagement() {
 
                         {/* Actions */}
                         <div className="flex flex-wrap items-center gap-2">
-                          {request.status === "Submitted" && (
+                          {request.status === "SUBMITTED" && (
                             <>
                               <button
                                 onClick={() => handleApprove(request)}
@@ -633,7 +434,7 @@ export default function AdminProcurementManagement() {
                               </button>
                             </>
                           )}
-                          {request.status === "Approved" && (
+                          {request.status === "APPROVED" && (
                             <button
                               onClick={() => generatePO(request)}
                               className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity flex items-center gap-2"
@@ -702,9 +503,6 @@ export default function AdminProcurementManagement() {
                                     <th className="text-right py-3 px-4 font-medium text-gray-700">
                                       Total
                                     </th>
-                                    <th className="text-left py-3 px-4 font-medium text-gray-700">
-                                      Supplier
-                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -716,23 +514,24 @@ export default function AdminProcurementManagement() {
                                       <td className="py-3 px-4">{item.name}</td>
                                       <td className="py-3 px-4">
                                         <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs">
-                                          {item.category}
+                                          {item.type}
                                         </span>
                                       </td>
                                       <td className="py-3 px-4 text-right">
                                         {item.quantity}
                                       </td>
                                       <td className="py-3 px-4 text-right">
-                                        ${item.unitCost.toLocaleString()}
+                                        $
+                                        {getUnitCost(
+                                          item.estimatedCost,
+                                          item.quantity,
+                                        ).toLocaleString()}
                                       </td>
                                       <td
                                         className="py-3 px-4 text-right font-medium"
                                         style={{ color: "#4169e1" }}
                                       >
-                                        ${item.totalCost.toLocaleString()}
-                                      </td>
-                                      <td className="py-3 px-4 text-gray-600">
-                                        {item.supplier}
+                                        ${item.estimatedCost.toLocaleString()}
                                       </td>
                                     </tr>
                                   ))}
@@ -802,7 +601,7 @@ export default function AdminProcurementManagement() {
                           )}
 
                           {/* Rejection Reason */}
-                          {request.status === "Rejected" &&
+                          {request.status === "REJECTED" &&
                             request.rejectionReason && (
                               <div>
                                 <h4

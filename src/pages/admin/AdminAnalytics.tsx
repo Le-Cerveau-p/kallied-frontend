@@ -1,4 +1,3 @@
-import { useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import {
@@ -28,64 +27,73 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import { useEffect, useMemo, useState } from "react";
+import { getAdminDashboard, getAdminCharts } from "../../api/admin";
 
 export default function AdminAnalytics() {
   const [dateRange, setDateRange] = useState("last-6-months");
   const [selectedProject, setSelectedProject] = useState("all");
 
+  const [dashboard, setDashboard] = useState<any>(null);
+  const [charts, setCharts] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        const [dashboardRes, chartsRes] = await Promise.all([
+          getAdminDashboard(),
+          getAdminCharts(),
+        ]);
+
+        setDashboard(dashboardRes);
+        setCharts(chartsRes);
+      } catch (err) {
+        console.error("Failed to load analytics", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAnalytics();
+  }, []);
+
   // Mock data for KPIs
-  const kpis = {
-    revenue: {
-      value: 2450000,
-      change: 12.5,
-      period: "vs last period",
-    },
-    completedProjects: {
-      value: 47,
-      change: 8.2,
-      period: "vs last period",
-    },
-    activeProjects: {
-      value: 24,
-      change: -3.1,
-      period: "vs last period",
-    },
-    avgProjectDuration: {
-      value: 68,
-      change: -5.4,
-      period: "days vs last period",
-    },
-  };
 
   // Project completion trends data
-  const completionTrendsData = [
-    { month: "Aug 2025", completed: 6, started: 8, revenue: 180000 },
-    { month: "Sep 2025", completed: 8, started: 10, revenue: 240000 },
-    { month: "Oct 2025", completed: 7, started: 6, revenue: 210000 },
-    { month: "Nov 2025", completed: 9, started: 9, revenue: 270000 },
-    { month: "Dec 2025", completed: 10, started: 7, revenue: 300000 },
-    { month: "Jan 2026", completed: 7, started: 8, revenue: 250000 },
-  ];
+  const completionTrendsData = useMemo(() => {
+    if (!charts?.projectsOverTime) return [];
+
+    return charts.projectsOverTime.map((p: any) => ({
+      month: p.month,
+      completed: p.count,
+      started: 0, // backend doesn’t track yet
+    }));
+  }, [charts]);
 
   // Procurement spend by project
-  const procurementSpendData = [
-    { project: "Cloud Migration", amount: 18500, category: "Infrastructure" },
-    { project: "E-Commerce Redesign", amount: 12300, category: "Software" },
-    { project: "Mobile App Dev", amount: 15600, category: "Cloud Services" },
-    { project: "Infrastructure Upgrade", amount: 24800, category: "Hardware" },
-    { project: "Data Analytics Platform", amount: 9200, category: "Software" },
-    { project: "CRM Integration", amount: 7500, category: "API Services" },
-    { project: "Security Audit", amount: 11200, category: "Security" },
-    { project: "Website Refresh", amount: 5800, category: "Design Tools" },
-  ];
+  const procurementSpendData = useMemo(() => {
+    if (!dashboard?.stats?.procurementByProject) return [];
+    return dashboard.stats.procurementByProject;
+  }, [dashboard]);
 
   // Project status distribution
-  const projectStatusData = [
-    { name: "In Progress", value: 24, color: "#4169e1" },
-    { name: "Completed", value: 15, color: "#a7fc00" },
-    { name: "On Hold", value: 3, color: "#ff9800" },
-    { name: "Planning", value: 8, color: "#9c27b0" },
-  ];
+  const projectStatusData = useMemo(() => {
+    if (!charts?.projectsByStatus) return [];
+
+    return charts.projectsByStatus.map((s: any) => ({
+      name: s.status.replace("_", " "),
+      value: s._count._all,
+      color:
+        s.status === "COMPLETED"
+          ? "#a7fc00"
+          : s.status === "IN_PROGRESS"
+            ? "#4169e1"
+            : s.status === "PENDING"
+              ? "#ff9800"
+              : "#9c27b0",
+    }));
+  }, [charts]);
 
   // Revenue by client type
   const revenueByClientData = [
@@ -150,6 +158,18 @@ export default function AdminAnalytics() {
       </span>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <AuthNavbar />
+        <AdminSidebar activeItem="analytics" />
+        <main className="pt-24 px-6">Loading analytics…</main>
+      </div>
+    );
+  }
+
+  if (!dashboard || !charts) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -263,13 +283,11 @@ export default function AdminAnalytics() {
                     style={{ color: "#a7fc00" }}
                   />
                 </div>
-                {getChangeIndicator(kpis.revenue.change)}
               </div>
               <h3 className="text-gray-600 text-sm mb-2">Revenue</h3>
               <p className="text-3xl mb-1" style={{ color: "#001f54" }}>
-                {formatCurrency(kpis.revenue.value)}
+                {formatCurrency(dashboard.stats.procurementValue)}
               </p>
-              <p className="text-xs text-gray-500">{kpis.revenue.period}</p>
             </div>
 
             {/* Completed Projects */}
@@ -281,15 +299,12 @@ export default function AdminAnalytics() {
                 >
                   <Briefcase className="w-6 h-6" style={{ color: "#4169e1" }} />
                 </div>
-                {getChangeIndicator(kpis.completedProjects.change)}
               </div>
               <h3 className="text-gray-600 text-sm mb-2">Completed Projects</h3>
               <p className="text-3xl mb-1" style={{ color: "#001f54" }}>
-                {kpis.completedProjects.value}
+                {dashboard.stats.completedProjects}
               </p>
-              <p className="text-xs text-gray-500">
-                {kpis.completedProjects.period}
-              </p>
+              <p className="text-xs text-gray-500"></p>
             </div>
 
             {/* Active Projects */}
@@ -298,15 +313,12 @@ export default function AdminAnalytics() {
                 <div className="p-3 rounded-lg bg-orange-100">
                   <Briefcase className="w-6 h-6 text-orange-600" />
                 </div>
-                {getChangeIndicator(kpis.activeProjects.change)}
               </div>
               <h3 className="text-gray-600 text-sm mb-2">Active Projects</h3>
               <p className="text-3xl mb-1" style={{ color: "#001f54" }}>
-                {kpis.activeProjects.value}
+                {dashboard.stats.inProgressProjects}
               </p>
-              <p className="text-xs text-gray-500">
-                {kpis.activeProjects.period}
-              </p>
+              <p className="text-xs text-gray-500"></p>
             </div>
 
             {/* Average Project Duration */}
@@ -315,17 +327,13 @@ export default function AdminAnalytics() {
                 <div className="p-3 rounded-lg bg-purple-100">
                   <Clock className="w-6 h-6 text-purple-600" />
                 </div>
-                {getChangeIndicator(kpis.avgProjectDuration.change)}
               </div>
               <h3 className="text-gray-600 text-sm mb-2">
                 Avg Project Duration
               </h3>
               <p className="text-3xl mb-1" style={{ color: "#001f54" }}>
-                {kpis.avgProjectDuration.value}
-                <span className="text-lg ml-1">days</span>
-              </p>
-              <p className="text-xs text-gray-500">
-                {kpis.avgProjectDuration.period}
+                <span className="text-gray-400 text-sm">-</span>
+                <span className="text-lg ml-1">Coming soon</span>
               </p>
             </div>
           </div>
@@ -413,41 +421,50 @@ export default function AdminAnalytics() {
                 Monthly Revenue vs Target
               </h2>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyRevenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 12 }}
-                    stroke="#666"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    stroke="#666"
-                    tickFormatter={(value) => formatCurrency(value)}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Legend wrapperStyle={{ fontSize: "12px" }} />
-                  <Bar
-                    dataKey="revenue"
-                    fill="#4169e1"
-                    name="Actual Revenue"
-                    radius={[8, 8, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="target"
-                    fill="#e0e0e0"
-                    name="Target Revenue"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
+                {/* {charts?.projectsOverTime?.length ? (
+                  <BarChart data={monthlyRevenueData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 12 }}
+                      stroke="#666"
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      stroke="#666"
+                      tickFormatter={(value) => formatCurrency(value)}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                      }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                    <Legend wrapperStyle={{ fontSize: "12px" }} />
+                    <Bar
+                      dataKey="revenue"
+                      fill="#4169e1"
+                      name="Actual Revenue"
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="target"
+                      fill="#e0e0e0"
+                      name="Target Revenue"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                ) : (
+                  <p className="text-sm text-gray-400">
+                    No revenue data available
+                  </p>
+                )} */}
+                <p className="text-sm text-gray-400">
+                  Revenue trend data coming soon
+                </p>
               </ResponsiveContainer>
             </div>
 
@@ -544,119 +561,8 @@ export default function AdminAnalytics() {
             </div>
           </div>
 
-          {/* Additional Insights Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Revenue by Client Type */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-xl mb-6" style={{ color: "#001f54" }}>
-                Revenue by Client Type
-              </h2>
-              <div className="flex justify-center mb-6">
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={revenueByClientData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={90}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                    >
-                      {revenueByClientData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e0e0e0",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                      }}
-                      formatter={(value: number) => formatCurrency(value)}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-3">
-                {revenueByClientData.map((client) => (
-                  <div
-                    key={client.type}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: client.color }}
-                      ></div>
-                      <span className="text-sm font-medium text-gray-700">
-                        {client.type}
-                      </span>
-                    </div>
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "#4169e1" }}
-                    >
-                      {formatCurrency(client.value)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Team Utilization */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-xl mb-6" style={{ color: "#001f54" }}>
-                Team Utilization Rate
-              </h2>
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={teamUtilizationData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 12 }}
-                    stroke="#666"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    stroke="#666"
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "white",
-                      border: "1px solid #e0e0e0",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value: number) => `${value}%`}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="utilization"
-                    stroke="#a7fc00"
-                    strokeWidth={3}
-                    dot={{ fill: "#a7fc00", r: 5 }}
-                    name="Utilization %"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-700">
-                  <span className="font-medium" style={{ color: "#4169e1" }}>
-                    Current utilization: 80%
-                  </span>{" "}
-                  • Target: 85%
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Project Categories Performance Table */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          {/* <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl" style={{ color: "#001f54" }}>
                 Project Categories Performance
@@ -756,7 +662,7 @@ export default function AdminAnalytics() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </div> */}
         </div>
       </main>
     </div>

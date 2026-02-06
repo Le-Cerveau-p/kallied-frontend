@@ -17,12 +17,18 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
+import {
+  getUserProjects,
+  getUsers,
+  removeStaffFromProject,
+} from "../../api/admin";
+import { adminSocket } from "../../socket/adminSocket";
 
 interface User {
   id: number;
   name: string;
   email: string;
-  role: "Admin" | "Staff" | "Client";
+  role: "ADMIN" | "STAFF" | "CLIENT";
   status: "Active" | "Disabled";
   joinDate: string;
 }
@@ -38,7 +44,7 @@ interface PendingAction {
 export default function AdminUserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<
-    "All" | "Admin" | "Staff" | "Client"
+    "All" | "ADMIN" | "STAFF" | "CLIENT"
   >("All");
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -62,101 +68,45 @@ export default function AdminUserManagement() {
   // Form States
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState<"Admin" | "Staff" | "Client">(
-    "Client",
+  const [newUserRole, setNewUserRole] = useState<"ADMIN" | "STAFF" | "CLIENT">(
+    "CLIENT",
   );
   const [editUserName, setEditUserName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
   const [newRoleSelection, setNewRoleSelection] = useState<
-    "Admin" | "Staff" | "Client"
-  >("Staff");
+    "ADMIN" | "STAFF" | "CLIENT"
+  >("STAFF");
 
   // Authorized email for OTP
   const AUTHORIZED_EMAIL = "security@company.com";
 
   // Mock user data
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      name: "John Admin",
-      email: "john@company.com",
-      role: "Admin",
-      status: "Active",
-      joinDate: "Jan 2025",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah.j@company.com",
-      role: "Staff",
-      status: "Active",
-      joinDate: "Feb 2025",
-    },
-    {
-      id: 3,
-      name: "Mike Chen",
-      email: "mike.c@company.com",
-      role: "Staff",
-      status: "Active",
-      joinDate: "Mar 2025",
-    },
-    {
-      id: 4,
-      name: "Emily Rodriguez",
-      email: "emily.r@company.com",
-      role: "Staff",
-      status: "Active",
-      joinDate: "Apr 2025",
-    },
-    {
-      id: 5,
-      name: "David Kim",
-      email: "david.k@company.com",
-      role: "Client",
-      status: "Active",
-      joinDate: "May 2025",
-    },
-    {
-      id: 6,
-      name: "Lisa Anderson",
-      email: "lisa.a@company.com",
-      role: "Staff",
-      status: "Active",
-      joinDate: "Jun 2025",
-    },
-    {
-      id: 7,
-      name: "Robert Wilson",
-      email: "robert.w@techcorp.com",
-      role: "Client",
-      status: "Active",
-      joinDate: "Jul 2025",
-    },
-    {
-      id: 8,
-      name: "Jennifer Taylor",
-      email: "jennifer.t@startup.com",
-      role: "Client",
-      status: "Active",
-      joinDate: "Aug 2025",
-    },
-    {
-      id: 9,
-      name: "Michael Brown",
-      email: "michael.b@company.com",
-      role: "Staff",
-      status: "Disabled",
-      joinDate: "Sep 2024",
-    },
-    {
-      id: 10,
-      name: "Amanda Davis",
-      email: "amanda.d@enterprise.com",
-      role: "Client",
-      status: "Active",
-      joinDate: "Oct 2025",
-    },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
+  const [projects, setProjects] = useState([]);
+
+  const openProjectModal = async (staffId: string) => {
+    setSelectedStaff(staffId);
+    const data = await getUserProjects(staffId);
+    setProjects(data);
+  };
+  const removeStaff = async (projectId: string) => {
+    if (!selectedStaff) return;
+
+    await removeStaffFromProject(projectId, selectedStaff);
+
+    setProjects((prev) => prev.filter((p) => p.projectId !== projectId));
+  };
+
+  adminSocket.on("user-removed-from-project", ({ projectId, userId }) => {
+    if (userId === selectedStaff) {
+      setProjects((prev) => prev.filter((p) => p.projectId !== projectId));
+    }
+  });
+
+  useEffect(() => {
+    getUsers().then(setUsers);
+  }, []);
 
   // OTP Timer countdown
   useEffect(() => {
@@ -307,16 +257,16 @@ export default function AdminUserManagement() {
   const resetAddUserForm = () => {
     setNewUserName("");
     setNewUserEmail("");
-    setNewUserRole("Client");
+    setNewUserRole("CLIENT");
   };
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "Admin":
+      case "ADMIN":
         return { bg: "#fce4ec", text: "#d4183d" };
-      case "Staff":
+      case "STAFF":
         return { bg: "#e3f2fd", text: "#4169e1" };
-      case "Client":
+      case "CLIENT":
         return { bg: "#f1f8e9", text: "#558b2f" };
       default:
         return { bg: "#f5f5f5", text: "#717182" };
@@ -386,7 +336,7 @@ export default function AdminUserManagement() {
     setShowRoleChangeDialog(true);
   };
 
-  const confirmRoleChange = (newRole: "Admin" | "Staff" | "Client") => {
+  const confirmRoleChange = (newRole: "ADMIN" | "STAFF" | "CLIENT") => {
     if (newRole === selectedUser?.role) {
       return;
     }
@@ -403,10 +353,10 @@ export default function AdminUserManagement() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const roleOptions: Array<"Admin" | "Staff" | "Client"> = [
-    "Admin",
-    "Staff",
-    "Client",
+  const roleOptions: Array<"ADMIN" | "STAFF" | "CLIENT"> = [
+    "ADMIN",
+    "STAFF",
+    "CLIENT",
   ];
 
   return (
@@ -458,9 +408,9 @@ export default function AdminUserManagement() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
                 >
                   <option value="All">All Roles</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Staff">Staff</option>
-                  <option value="Client">Client</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="CLIENT">Client</option>
                 </select>
               </div>
 
@@ -564,7 +514,7 @@ export default function AdminUserManagement() {
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((user) => (
+                    filteredUsers.map((user?) => (
                       <tr
                         key={user.id}
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
@@ -612,11 +562,11 @@ export default function AdminUserManagement() {
                               color: getStatusColor(user.status).text,
                             }}
                           >
-                            {user.status}
+                            {/* {user.status} */}Active
                           </span>
                         </td>
                         <td className="px-6 py-4 text-gray-600 text-sm">
-                          {user.joinDate}
+                          {user.createdAt}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">

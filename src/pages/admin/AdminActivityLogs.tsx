@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import { getActivityLogs, getCompanyUsers } from "../../api/admin";
 import {
   Activity,
   Search,
@@ -23,6 +24,7 @@ import {
   Eye,
   ChevronDown,
 } from "lucide-react";
+import { getUsers } from "../../api/admin";
 
 interface ActivityLog {
   id: string;
@@ -50,256 +52,70 @@ export default function AdminActivityLogs() {
   const [entityFilter, setEntityFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [dateRange, setDateRange] = useState("last-7-days");
+  const [logs, setLogs] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [users, setUsers] = useState<any[]>([]);
 
-  // Mock activity log data
-  const activityLogs: ActivityLog[] = [
-    {
-      id: "LOG-001",
-      timestamp: "Jan 25, 2026 at 2:45 PM",
-      actor: "Admin User",
-      actorRole: "System Administrator",
-      action: "Approved",
-      entity: "Procurement",
-      entityId: "PR-001",
-      description:
-        'Approved procurement request "AWS Cloud Credits & Infrastructure" for $5,200',
-      ipAddress: "192.168.1.45",
-    },
-    {
-      id: "LOG-002",
-      timestamp: "Jan 25, 2026 at 2:30 PM",
-      actor: "Sarah Johnson",
-      actorRole: "Project Manager",
-      action: "Created",
-      entity: "Project",
-      entityId: "PROJ-052",
-      description:
-        'Created new project "Mobile Banking App" with estimated budget of $85,000',
-      ipAddress: "192.168.1.23",
-    },
-    {
-      id: "LOG-003",
-      timestamp: "Jan 25, 2026 at 2:15 PM",
-      actor: "David Kim",
-      actorRole: "DevOps Engineer",
-      action: "Uploaded",
-      entity: "Document",
-      entityId: "DOC-234",
-      description:
-        'Uploaded "Infrastructure_Diagram_v2.pdf" to Cloud Migration Project',
-      ipAddress: "192.168.1.67",
-    },
-    {
-      id: "LOG-004",
-      timestamp: "Jan 25, 2026 at 1:50 PM",
-      actor: "Admin User",
-      actorRole: "System Administrator",
-      action: "Rejected",
-      entity: "Procurement",
-      entityId: "PR-005",
-      description:
-        'Rejected procurement request "Testing Tools & QA Software" - Budget constraints',
-      ipAddress: "192.168.1.45",
-    },
-    {
-      id: "LOG-005",
-      timestamp: "Jan 25, 2026 at 1:30 PM",
-      actor: "Emily Rodriguez",
-      actorRole: "QA Manager",
-      action: "Updated",
-      entity: "Project",
-      entityId: "PROJ-032",
-      description: 'Updated project status from "In Progress" to "QA Review"',
-      ipAddress: "192.168.1.89",
-    },
-    {
-      id: "LOG-006",
-      timestamp: "Jan 25, 2026 at 1:15 PM",
-      actor: "Admin User",
-      actorRole: "System Administrator",
-      action: "Created",
-      entity: "User",
-      entityId: "USR-045",
-      description:
-        'Created new user account for "John Martinez" with role "Developer"',
-      ipAddress: "192.168.1.45",
-    },
-    {
-      id: "LOG-007",
-      timestamp: "Jan 25, 2026 at 12:45 PM",
-      actor: "Finance Team",
-      actorRole: "Finance Manager",
-      action: "Generated",
-      entity: "Invoice",
-      entityId: "INV-2026-006",
-      description:
-        'Generated invoice for "Mobile App Development" - Amount: $18,500',
-      ipAddress: "192.168.1.101",
-    },
-    {
-      id: "LOG-008",
-      timestamp: "Jan 25, 2026 at 12:30 PM",
-      actor: "Mike Chen",
-      actorRole: "Developer",
-      action: "Sent",
-      entity: "Message",
-      entityId: "MSG-789",
-      description:
-        "Sent message to client regarding project milestone completion",
-      ipAddress: "192.168.1.56",
-    },
-    {
-      id: "LOG-009",
-      timestamp: "Jan 25, 2026 at 11:45 AM",
-      actor: "Lisa Anderson",
-      actorRole: "Infrastructure Manager",
-      action: "Submitted",
-      entity: "Procurement",
-      entityId: "PR-003",
-      description:
-        'Submitted procurement request "Server Hardware Upgrade" for $12,500',
-      ipAddress: "192.168.1.78",
-    },
-    {
-      id: "LOG-010",
-      timestamp: "Jan 25, 2026 at 11:20 AM",
-      actor: "Admin User",
-      actorRole: "System Administrator",
-      action: "Updated",
-      entity: "Contract",
-      entityId: "CON-002",
-      description:
-        'Updated contract terms for "StartupXYZ" - Extended end date to May 31, 2026',
-      ipAddress: "192.168.1.45",
-    },
-    {
-      id: "LOG-011",
-      timestamp: "Jan 25, 2026 at 10:50 AM",
-      actor: "Sarah Johnson",
-      actorRole: "Project Manager",
-      action: "Deleted",
-      entity: "Document",
-      entityId: "DOC-198",
-      description:
-        'Deleted outdated document "old_requirements_v1.doc" from project files',
-      ipAddress: "192.168.1.23",
-    },
-    {
-      id: "LOG-012",
-      timestamp: "Jan 25, 2026 at 10:15 AM",
-      actor: "System",
-      actorRole: "Automated Process",
-      action: "Generated",
-      entity: "System",
-      entityId: "SYS-001",
-      description:
-        "Automated backup completed successfully - 24.5GB data backed up",
-      ipAddress: "N/A",
-    },
-    {
-      id: "LOG-013",
-      timestamp: "Jan 25, 2026 at 9:45 AM",
-      actor: "Admin User",
-      actorRole: "System Administrator",
-      action: "Deactivated",
-      entity: "User",
-      entityId: "USR-023",
-      description:
-        'Deactivated user account for "Robert Smith" - Employee departure',
-      ipAddress: "192.168.1.45",
-    },
-    {
-      id: "LOG-014",
-      timestamp: "Jan 25, 2026 at 9:20 AM",
-      actor: "David Kim",
-      actorRole: "DevOps Engineer",
-      action: "Updated",
-      entity: "Project",
-      entityId: "PROJ-045",
-      description:
-        'Updated project milestone "Phase 2 - Data Migration" to completed',
-      ipAddress: "192.168.1.67",
-    },
-    {
-      id: "LOG-015",
-      timestamp: "Jan 25, 2026 at 8:50 AM",
-      actor: "Emily Rodriguez",
-      actorRole: "QA Manager",
-      action: "Created",
-      entity: "Document",
-      entityId: "DOC-235",
-      description:
-        'Created test report "QA_Testing_Results_Sprint_5.pdf" for E-Commerce project',
-      ipAddress: "192.168.1.89",
-    },
-    {
-      id: "LOG-016",
-      timestamp: "Jan 24, 2026 at 5:30 PM",
-      actor: "Mike Chen",
-      actorRole: "Developer",
-      action: "Updated",
-      entity: "Project",
-      entityId: "PROJ-038",
-      description: "Updated project progress to 75% completion",
-      ipAddress: "192.168.1.56",
-    },
-    {
-      id: "LOG-017",
-      timestamp: "Jan 24, 2026 at 4:45 PM",
-      actor: "Finance Team",
-      actorRole: "Finance Manager",
-      action: "Marked Paid",
-      entity: "Invoice",
-      entityId: "INV-2026-001",
-      description:
-        "Marked invoice INV-2026-001 as paid - Payment received: $25,000",
-      ipAddress: "192.168.1.101",
-    },
-    {
-      id: "LOG-018",
-      timestamp: "Jan 24, 2026 at 3:20 PM",
-      actor: "Admin User",
-      actorRole: "System Administrator",
-      action: "Updated",
-      entity: "System",
-      entityId: "SET-001",
-      description:
-        "Updated system notification settings - Email notifications enabled for all users",
-      ipAddress: "192.168.1.45",
-    },
-    {
-      id: "LOG-019",
-      timestamp: "Jan 24, 2026 at 2:15 PM",
-      actor: "Sarah Johnson",
-      actorRole: "Project Manager",
-      action: "Assigned",
-      entity: "Project",
-      entityId: "PROJ-051",
-      description:
-        'Assigned "Infrastructure Upgrade" project to team member David Kim',
-      ipAddress: "192.168.1.23",
-    },
-    {
-      id: "LOG-020",
-      timestamp: "Jan 24, 2026 at 1:30 PM",
-      actor: "Lisa Anderson",
-      actorRole: "Infrastructure Manager",
-      action: "Downloaded",
-      entity: "Document",
-      entityId: "DOC-220",
-      description:
-        'Downloaded "Server_Configuration_Guide.pdf" from resources library',
-      ipAddress: "192.168.1.78",
-    },
-  ];
+  useEffect(() => {
+    fetchLogs();
+  }, [page, entityFilter, userFilter, dateRange]);
 
-  // Get unique users for filter
-  const uniqueUsers = Array.from(
-    new Set(activityLogs.map((log) => log.actor)),
-  ).sort();
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  // Filter logs
-  const filteredLogs = activityLogs.filter((log) => {
+  const formatAction = (action: string) => {
+    return action.charAt(0) + action.slice(1).toLowerCase();
+  };
+
+  const formatEntity = (entity: string) => {
+    return entity.charAt(0) + entity.slice(1).toLowerCase();
+  };
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+
+      const res = await getActivityLogs({
+        page,
+        limit: 20,
+        entity: entityFilter !== "all" ? entityFilter.toUpperCase() : undefined,
+        actorId: userFilter !== "all" ? userFilter : undefined,
+      });
+
+      setLogs(res.logs);
+      setPagination(res.pagination);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await getCompanyUsers();
+      setUsers(res);
+
+      console.log("Got users", res);
+    } catch (err) {
+      console.error("Failed to fetch users", err);
+    }
+  };
+
+  const mappedLogs = logs.map((log) => ({
+    id: log.id,
+    timestamp: new Date(log.createdAt).toLocaleString(),
+    actor: `${log.actor.firstName} ${log.actor.lastName}`,
+    actorRole: log.actor.role,
+    action: formatAction(log.action),
+    entity: formatEntity(log.entity),
+    entityId: log.entityId,
+    description: log.message || `${log.action} ${log.entity}`,
+  }));
+
+  // Filter logsd
+  const filteredLogs = mappedLogs.filter((log) => {
     const matchesSearch =
       log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.actor.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -307,7 +123,7 @@ export default function AdminActivityLogs() {
       log.action.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesEntity = entityFilter === "all" || log.entity === entityFilter;
-    const matchesUser = userFilter === "all" || log.actor === userFilter;
+    const matchesUser = true;
 
     return matchesSearch && matchesEntity && matchesUser;
   });
@@ -354,15 +170,16 @@ export default function AdminActivityLogs() {
 
   // Stats
   const stats = {
-    total: activityLogs.length,
-    today: activityLogs.filter((log) => log.timestamp.includes("Jan 25, 2026"))
-      .length,
+    total: pagination?.total || 0,
+    today: mappedLogs.filter((log) => {
+      const today = new Date().toDateString();
+      return new Date(log.timestamp).toDateString() === today;
+    }).length,
     byEntity: {
-      Project: activityLogs.filter((log) => log.entity === "Project").length,
-      Procurement: activityLogs.filter((log) => log.entity === "Procurement")
-        .length,
-      Document: activityLogs.filter((log) => log.entity === "Document").length,
-      User: activityLogs.filter((log) => log.entity === "User").length,
+      Project: mappedLogs.filter((l) => l.entity === "Project").length,
+      Procurement: mappedLogs.filter((l) => l.entity === "Procurement").length,
+      Document: mappedLogs.filter((l) => l.entity === "Document").length,
+      User: mappedLogs.filter((l) => l.entity === "User").length,
     },
   };
 
@@ -552,9 +369,9 @@ export default function AdminActivityLogs() {
                   className="w-full sm:w-96 pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
                 >
                   <option value="all">All Users</option>
-                  {uniqueUsers.map((user) => (
-                    <option key={user} value={user}>
-                      {user}
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
                     </option>
                   ))}
                 </select>
@@ -689,19 +506,25 @@ export default function AdminActivityLogs() {
             {filteredLogs.length > 0 && (
               <div className="p-6 border-t border-gray-200 flex items-center justify-between">
                 <p className="text-sm text-gray-600">
-                  Showing {filteredLogs.length} of {activityLogs.length} total
+                  Showing {filteredLogs.length} of {mappedLogs.length} total
                   logs
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
                     style={{ color: "#001f54" }}
+                    onClick={() => {
+                      if (page > 1) setPage(page - 1);
+                    }}
                   >
                     Previous
                   </button>
                   <button
                     className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: "#4169e1" }}
+                    onClick={() => {
+                      if (page < pagination.totalPages) setPage(page + 1);
+                    }}
                   >
                     Next
                   </button>

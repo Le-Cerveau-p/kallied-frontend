@@ -10,8 +10,6 @@ import Features from "./pages/Features";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import ProfilePage from "./pages/ProfilePage";
-import SettingsPage from "./pages/SettingsPage";
 import ClientProjectsPage from "./pages/client/ClientProjectsPage";
 import ClientChatThreadsPage from "./pages/client/ClientChatThreadsPage";
 import ThreadsRouter from "./pages/ThreadsRouter";
@@ -37,6 +35,10 @@ import AdminProjectsManagement from "./pages/admin/AdminProjectsManagement";
 import AdminResources from "./pages/admin/AdminResources";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
+import AdminProfilePage from "./pages/admin/AdminProfilePage";
+import ProfileRouter from "./pages/ProfileRouter";
+import SettingsRouter from "./pages/SettingsRouter";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 
 function App() {
   return (
@@ -136,7 +138,7 @@ function App() {
         element={
           <ProtectedRoute roles={["ADMIN"]}>
             {" "}
-            <AdminSettings />{" "}
+            <AdminSettingsPage />{" "}
           </ProtectedRoute>
         }
       />
@@ -147,6 +149,16 @@ function App() {
           <ProtectedRoute roles={["ADMIN"]}>
             {" "}
             <AdminUserManagement />{" "}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/profile"
+        element={
+          <ProtectedRoute roles={["ADMIN"]}>
+            {" "}
+            <AdminProfilePage />{" "}
           </ProtectedRoute>
         }
       />
@@ -346,7 +358,7 @@ function App() {
         element={
           <ProtectedRoute roles={["ADMIN", "STAFF", "CLIENT"]}>
             {" "}
-            <ProfilePage />{" "}
+            <ProfileRouter />{" "}
           </ProtectedRoute>
         }
       />
@@ -355,7 +367,7 @@ function App() {
         element={
           <ProtectedRoute roles={["ADMIN", "STAFF", "CLIENT"]}>
             {" "}
-            <SettingsPage />{" "}
+            <SettingsRouter />{" "}
           </ProtectedRoute>
         }
       />
