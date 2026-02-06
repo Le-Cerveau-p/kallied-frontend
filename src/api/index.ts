@@ -1,12 +1,12 @@
 import axios from "axios";
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
-});
-
 // export const api = axios.create({
-//   baseURL: "https://kallied-backend-production.up.railway.app",
+//   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
 // });
+
+export const api = axios.create({
+  baseURL: "https://kallied-backend-production.up.railway.app",
+});
 
 // Attach token automatically
 api.interceptors.request.use((config) => {
