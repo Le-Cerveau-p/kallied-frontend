@@ -235,7 +235,7 @@ export default function Login() {
           {/* Footer */}
           <p className="text-sm text-center mt-6">
             Don’t have an account?{" "}
-            <Link to="/register">
+            <Link to="/signup">
               <span className="text-blue-600 cursor-pointer hover:underline">
                 Sign up
               </span>

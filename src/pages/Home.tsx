@@ -102,7 +102,7 @@ export default function Home() {
   }, [testimonials.length]);
 
   const scrollToSignup = () => {
-    navigate("/register");
+    navigate("/signup");
   };
 
   const scrollToServices = () => {

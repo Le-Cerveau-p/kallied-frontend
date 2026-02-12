@@ -118,7 +118,7 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
                   className="text-[#001f54] hover:opacity-90 transition-all duration-200"
                   style={{ backgroundColor: "#a7fc00" }}
                 >
-                  <Link to="/register">Sign Up</Link>
+                  <Link to="/signup">Sign Up</Link>
                 </Button>
               </>
             ) : (
