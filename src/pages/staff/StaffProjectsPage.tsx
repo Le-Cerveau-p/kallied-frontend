@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import StaffSidebar from "../../components/StaffSidebar";
 import {
@@ -17,31 +17,66 @@ import {
   User,
   Building,
 } from "lucide-react";
+import { createStaffProject, getMyStaffProjects } from "../../api/staff";
+import { useNavigate } from "react-router-dom";
+import { getClientUsers, getCurrentUser } from "../../api/users";
+import Toast from "../../components/Toast";
 
 interface StaffMember {
-  id: number;
+  id: string;
   name: string;
   role: string;
   avatar?: string;
 }
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   clientName: string;
   status:
-    | "Planning"
-    | "In Progress"
-    | "On Hold"
-    | "Completed"
-    | "Pending Approval";
+    | "PENDING"
+    | "IN_PROGRESS"
+    // | "On Hold"
+    | "COMPLETED"
+    | "AWAITING_APPROVAL";
   progress: number;
   assignedStaff: StaffMember[];
   createdDate: string;
-  deadline: string;
+  deadline: string | null;
+}
+
+interface ClientOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
 }
 
 export default function StaffProjectsPage() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+    setLoading(false);
+  }, []);
+  const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -53,96 +88,48 @@ export default function StaffProjectsPage() {
   // New project form state
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectClient, setNewProjectClient] = useState("");
+  const [newProjectCategory, setNewProjectCategory] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
   const [newProjectDeadline, setNewProjectDeadline] = useState("");
+  const [newProjectBudget, setNewProjectBudget] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [clientsList, setClientsList] = useState<ClientOption[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Mock projects data
-  const allProjects: Project[] = [
-    {
-      id: 1,
-      name: "Website Redesign",
-      clientName: "Acme Corporation",
-      status: "In Progress",
-      progress: 75,
-      assignedStaff: [
-        { id: 1, name: "Sarah Chen", role: "Designer" },
-        { id: 2, name: "Mike Johnson", role: "Developer" },
-        { id: 3, name: "Emily Davis", role: "Project Manager" },
-      ],
-      createdDate: "Dec 15, 2025",
-      deadline: "Jan 31, 2026",
-    },
-    {
-      id: 2,
-      name: "Mobile App Development",
-      clientName: "TechStart Inc",
-      status: "In Progress",
-      progress: 45,
-      assignedStaff: [
-        { id: 2, name: "Mike Johnson", role: "Developer" },
-        { id: 4, name: "David Kim", role: "Developer" },
-      ],
-      createdDate: "Jan 5, 2026",
-      deadline: "Feb 15, 2026",
-    },
-    {
-      id: 3,
-      name: "E-commerce Platform",
-      clientName: "Retail Solutions",
-      status: "On Hold",
-      progress: 60,
-      assignedStaff: [
-        { id: 1, name: "Sarah Chen", role: "Designer" },
-        { id: 5, name: "Jordan Lee", role: "Developer" },
-      ],
-      createdDate: "Nov 20, 2025",
-      deadline: "Jan 25, 2026",
-    },
-    {
-      id: 4,
-      name: "Brand Identity Package",
-      clientName: "Creative Studios",
-      status: "Completed",
-      progress: 100,
-      assignedStaff: [
-        { id: 1, name: "Sarah Chen", role: "Designer" },
-        { id: 3, name: "Emily Davis", role: "Project Manager" },
-      ],
-      createdDate: "Nov 10, 2025",
-      deadline: "Jan 20, 2026",
-    },
-    {
-      id: 5,
-      name: "CRM System Integration",
-      clientName: "Enterprise Solutions",
-      status: "Planning",
-      progress: 15,
-      assignedStaff: [
-        { id: 4, name: "David Kim", role: "Developer" },
-        { id: 3, name: "Emily Davis", role: "Project Manager" },
-      ],
-      createdDate: "Jan 10, 2026",
-      deadline: "Feb 28, 2026",
-    },
-    {
-      id: 6,
-      name: "Marketing Website",
-      clientName: "Marketing Pros",
-      status: "Pending Approval",
-      progress: 0,
-      assignedStaff: [{ id: 2, name: "Mike Johnson", role: "Developer" }],
-      createdDate: "Jan 18, 2026",
-      deadline: "Feb 20, 2026",
-    },
-  ];
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const [data, clients] = await Promise.all([
+          getMyStaffProjects(),
+          getClientUsers(),
+        ]);
+        setProjects(data);
+        setClientsList(clients);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProjects();
+  }, []);
 
   const clients = [
     "All Clients",
-    ...Array.from(new Set(allProjects.map((p) => p.clientName))),
+    ...Array.from(new Set(projects.map((p) => p.clientName))),
   ];
 
+  const formatDate = (value: string | null | undefined) => {
+    if (!value) return "N/A";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString();
+  };
+
   // Filter projects
-  const filteredProjects = allProjects.filter((project) => {
+  const filteredProjects = projects.filter((project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.clientName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -155,42 +142,60 @@ export default function StaffProjectsPage() {
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case "Planning":
+      case "PENDING":
         return { backgroundColor: "#9333ea20", color: "#9333ea", icon: Clock };
-      case "In Progress":
+      case "IN_PROGRESS":
         return { backgroundColor: "#4169e120", color: "#4169e1", icon: Clock };
-      case "On Hold":
-        return {
-          backgroundColor: "#ff980020",
-          color: "#ff9800",
-          icon: AlertCircle,
-        };
-      case "Completed":
+      // case "On Hold":
+      //   return {
+      //     backgroundColor: "#ff980020",
+      //     color: "#ff9800",
+      //     icon: AlertCircle,
+      //   };
+      case "COMPLETED":
         return {
           backgroundColor: "#32cd3220",
           color: "#32cd32",
           icon: CheckCircle,
         };
-      case "Pending Approval":
+      case "AWAITING_APPROVAL":
         return { backgroundColor: "#ff980020", color: "#ff9800", icon: Clock };
       default:
         return { backgroundColor: "#71718220", color: "#717182", icon: Clock };
     }
   };
 
-  const handleCreateProject = () => {
-    console.log("Creating project:", {
-      name: newProjectName,
-      client: newProjectClient,
-      description: newProjectDescription,
-      deadline: newProjectDeadline,
-    });
-    // Reset form
-    setNewProjectName("");
-    setNewProjectClient("");
-    setNewProjectDescription("");
-    setNewProjectDeadline("");
-    setShowCreateModal(false);
+  const handleCreateProject = async () => {
+    try {
+      const parsedBudget = newProjectBudget.trim()
+        ? Number(newProjectBudget)
+        : undefined;
+
+      const payload = {
+        name: newProjectName,
+        clientId: newProjectClient,
+        description: newProjectDescription,
+        category: newProjectCategory,
+        eCD: newProjectDeadline,
+        budget: Number.isFinite(parsedBudget) ? parsedBudget : undefined,
+      };
+
+      await createStaffProject(payload);
+      const updated = await getMyStaffProjects();
+      setProjects(updated);
+
+      setNewProjectName("");
+      setNewProjectClient("");
+      setNewProjectCategory("");
+      setNewProjectDescription("");
+      setNewProjectDeadline("");
+      setNewProjectBudget("");
+      setShowCreateModal(false);
+    } catch (err) {
+      // console.error(err);
+      setToastMessage("Failed to create project. Please try again.");
+      console.log(err?.response?.data?.message);
+    }
   };
 
   const handleOpenChat = (project: Project) => {
@@ -199,17 +204,45 @@ export default function StaffProjectsPage() {
   };
 
   const handleSelectThread = (threadType: "main" | "staff") => {
-    console.log(
-      `Opening ${threadType} thread for project:`,
-      selectedProject?.name,
-    );
+    if (!selectedProject) return;
+    navigate(`/staff/projects/${selectedProject.id}?thread=${threadType}`);
     setShowChatModal(false);
-    // Navigate to chat page with thread type
   };
+
+  if (loading)
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <AuthNavbar currentPage="staff" />
+        <StaffSidebar activeItem="dashboard" />
+        <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
+          <div className="max-w-7xl mx-auto">
+            {/* Page Heading */}
+            <div className="mb-8">
+              <h1 className="text-4xl" style={{ color: "#001f54" }}>
+                Loading projects...
+              </h1>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone="error"
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <StaffSidebar activeItem="projects" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -277,12 +310,12 @@ export default function StaffProjectsPage() {
                     } as React.CSSProperties
                   }
                 >
-                  <option>All Status</option>
-                  <option>Planning</option>
-                  <option>In Progress</option>
-                  <option>On Hold</option>
-                  <option>Completed</option>
-                  <option>Pending Approval</option>
+                  <option value="All Status">All Status</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  {/* <option>On Hold</option> */}
+                  <option value="COMPLETED">Completed</option>
+                  <option value="AWAITING_APPROVAL">Awaiting Approval</option>
                 </select>
               </div>
 
@@ -316,8 +349,7 @@ export default function StaffProjectsPage() {
               style={{ borderColor: "#e5e7eb" }}
             >
               <p className="text-sm text-gray-600">
-                Showing {filteredProjects.length} of {allProjects.length}{" "}
-                projects
+                Showing {filteredProjects.length} of {projects.length} projects
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -486,7 +518,7 @@ export default function StaffProjectsPage() {
                       <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
-                          Due {project.deadline}
+                          Due {formatDate(project.deadline)}
                         </span>
                       </div>
 
@@ -494,7 +526,7 @@ export default function StaffProjectsPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() =>
-                            console.log("Open project:", project.id)
+                            navigate(`/staff/projects/${project.id}`)
                           }
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:shadow-md"
                           style={{ backgroundColor: "#4169e1", color: "white" }}
@@ -601,7 +633,7 @@ export default function StaffProjectsPage() {
                             {/* Deadline */}
                             <div className="flex items-center gap-1 text-xs text-gray-500">
                               <Calendar className="w-3.5 h-3.5" />
-                              {project.deadline}
+                              {formatDate(project.deadline)}
                             </div>
                           </div>
                         </div>
@@ -610,7 +642,7 @@ export default function StaffProjectsPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() =>
-                              console.log("Open project:", project.id)
+                              navigate(`/staff/projects/${project.id}`)
                             }
                             className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:shadow-md"
                             style={{
@@ -698,19 +730,52 @@ export default function StaffProjectsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Client Name *
                 </label>
-                <input
-                  type="text"
-                  placeholder="Enter client name..."
+                <select
                   value={newProjectClient}
                   onChange={(e) => setNewProjectClient(e.target.value)}
-                  className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all"
+                  className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all cursor-pointer"
                   style={
                     {
                       borderColor: "#e5e7eb",
                       "--tw-ring-color": "#4169e1",
                     } as React.CSSProperties
                   }
-                />
+                >
+                  <option value="">Select a client...</option>
+                  {clientsList.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} ({client.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Project Category *
+                </label>
+                <select
+                  value={newProjectCategory}
+                  onChange={(e) => setNewProjectCategory(e.target.value)}
+                  className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all cursor-pointer"
+                  style={
+                    {
+                      borderColor: "#e5e7eb",
+                      "--tw-ring-color": "#4169e1",
+                    } as React.CSSProperties
+                  }
+                >
+                  <option value="">Select a category...</option>
+                  <option value="CONSTRUCTION">Construction</option>
+                  <option value="ENGINEERING">Engineering</option>
+                  <option value="PROCUREMENT">Procurement</option>
+                  <option value="CONSULTANCY">Consultancy</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="GOVERNMENT">Government</option>
+                  <option value="RESEARCH">Research</option>
+                  <option value="TECH">Tech</option>
+                </select>
               </div>
 
               {/* Deadline */}
@@ -722,6 +787,28 @@ export default function StaffProjectsPage() {
                   type="date"
                   value={newProjectDeadline}
                   onChange={(e) => setNewProjectDeadline(e.target.value)}
+                  className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all"
+                  style={
+                    {
+                      borderColor: "#e5e7eb",
+                      "--tw-ring-color": "#4169e1",
+                    } as React.CSSProperties
+                  }
+                />
+              </div>
+
+              {/* Budget */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Budget (Optional)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter project budget..."
+                  value={newProjectBudget}
+                  onChange={(e) => setNewProjectBudget(e.target.value)}
                   className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all"
                   style={
                     {
@@ -770,6 +857,7 @@ export default function StaffProjectsPage() {
                 disabled={
                   !newProjectName ||
                   !newProjectClient ||
+                  !newProjectCategory ||
                   !newProjectDescription ||
                   !newProjectDeadline
                 }

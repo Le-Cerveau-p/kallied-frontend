@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import StaffSidebar from "../../components/StaffSidebar";
 import {
@@ -12,26 +12,35 @@ import {
   X,
   CheckCircle,
 } from "lucide-react";
+import {
+  createStaffTimesheet,
+  deleteStaffTimesheet,
+  getMyStaffProjects,
+  getStaffTimesheets,
+} from "../../api/staff";
+import { getCurrentUser } from "../../api/users";
+import Toast from "../../components/Toast";
 
 interface TimesheetEntry {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   projectName: string;
   date: string;
   hours: number;
   notes: string;
-  status: "pending" | "approved" | "rejected";
+  status: "PENDING" | "APPROVED" | "REJECTED";
   submittedAt: string;
 }
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   clientName: string;
 }
 
 export default function StaffTimesheetsPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(
+  const [userName, setUserName] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
   const [selectedDate, setSelectedDate] = useState(
@@ -39,134 +48,126 @@ export default function StaffTimesheetsPage() {
   );
   const [hours, setHours] = useState("");
   const [notes, setNotes] = useState("");
-  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<
-    "all" | "pending" | "approved" | "rejected"
+    "all" | "PENDING" | "APPROVED" | "REJECTED"
   >("all");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Mock projects data
-  const projects: Project[] = [
-    { id: 1, name: "Website Redesign", clientName: "Acme Corporation" },
-    { id: 2, name: "Mobile App Development", clientName: "TechStart Inc" },
-    { id: 3, name: "E-commerce Platform", clientName: "Retail Solutions" },
-    { id: 4, name: "Brand Identity Package", clientName: "Creative Studios" },
-    {
-      id: 5,
-      name: "CRM System Integration",
-      clientName: "Enterprise Solutions",
-    },
-    { id: 6, name: "Marketing Campaign Portal", clientName: "Marketing Pros" },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      try {
+        const [projectsData, entriesData, user] = await Promise.all([
+          getMyStaffProjects(),
+          getStaffTimesheets(),
+          getCurrentUser(),
+        ]);
 
-  // Mock timesheet entries
-  const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>([
-    {
-      id: 1,
-      projectId: 1,
-      projectName: "Website Redesign",
-      date: "2026-01-20",
-      hours: 6.5,
-      notes: "Worked on homepage design and responsive layout",
-      status: "approved",
-      submittedAt: "Jan 20, 2026 at 5:30 PM",
-    },
-    {
-      id: 2,
-      projectId: 2,
-      projectName: "Mobile App Development",
-      date: "2026-01-20",
-      hours: 2.0,
-      notes: "API integration planning meeting",
-      status: "approved",
-      submittedAt: "Jan 20, 2026 at 5:35 PM",
-    },
-    {
-      id: 3,
-      projectId: 1,
-      projectName: "Website Redesign",
-      date: "2026-01-21",
-      hours: 8.0,
-      notes: "Implemented navigation menu and footer components",
-      status: "approved",
-      submittedAt: "Jan 21, 2026 at 6:00 PM",
-    },
-    {
-      id: 4,
-      projectId: 3,
-      projectName: "E-commerce Platform",
-      date: "2026-01-22",
-      hours: 5.5,
-      notes: "Payment gateway configuration and testing",
-      status: "pending",
-      submittedAt: "Jan 22, 2026 at 4:45 PM",
-    },
-    {
-      id: 5,
-      projectId: 2,
-      projectName: "Mobile App Development",
-      date: "2026-01-22",
-      hours: 3.0,
-      notes: "Code review and bug fixes",
-      status: "pending",
-      submittedAt: "Jan 22, 2026 at 4:50 PM",
-    },
-  ]);
+        if (!isMounted) return;
+
+        const mappedProjects: Project[] = projectsData.map((project: any) => ({
+          id: project.id,
+          name: project.name,
+          clientName: project.clientName,
+        }));
+
+        const mappedEntries: TimesheetEntry[] = entriesData.map(
+          (entry: any) => ({
+            id: entry.id,
+            projectId: entry.projectId,
+            projectName: entry.projectName,
+            date: new Date(entry.date).toISOString().split("T")[0],
+            hours: entry.hours,
+            notes: entry.notes ?? "",
+            status: entry.status,
+            submittedAt: new Date(entry.submittedAt).toLocaleString(),
+          }),
+        );
+
+        setProjects(mappedProjects);
+        setTimesheetEntries(mappedEntries);
+        setUserName(user?.name ?? null);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedProjectId || !hours || parseFloat(hours) <= 0) {
-      alert("Please select a project and enter valid hours");
+      setToastMessage("Please select a project and enter valid hours.");
       return;
     }
 
-    const selectedProject = projects.find((p) => p.id === selectedProjectId);
-    if (!selectedProject) return;
+    (async () => {
+      try {
+        const entry = await createStaffTimesheet({
+          projectId: selectedProjectId,
+          date: selectedDate,
+          hours: parseFloat(hours),
+          notes: notes || undefined,
+        });
 
-    const newEntry: TimesheetEntry = {
-      id: timesheetEntries.length + 1,
-      projectId: selectedProjectId,
-      projectName: selectedProject.name,
-      date: selectedDate,
-      hours: parseFloat(hours),
-      notes: notes,
-      status: "pending",
-      submittedAt:
-        new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }) +
-        " at " +
-        new Date().toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        }),
-    };
+        const newEntry: TimesheetEntry = {
+          id: entry.id,
+          projectId: entry.projectId,
+          projectName: entry.projectName,
+          date: new Date(entry.date).toISOString().split("T")[0],
+          hours: entry.hours,
+          notes: entry.notes ?? "",
+          status: entry.status,
+          submittedAt: new Date(entry.submittedAt).toLocaleString(),
+        };
 
-    setTimesheetEntries([newEntry, ...timesheetEntries]);
+        setTimesheetEntries([newEntry, ...timesheetEntries]);
 
-    // Reset form
-    setSelectedProjectId(null);
-    setSelectedDate(new Date().toISOString().split("T")[0]);
-    setHours("");
-    setNotes("");
+        setSelectedProjectId(null);
+        setSelectedDate(new Date().toISOString().split("T")[0]);
+        setHours("");
+        setNotes("");
+      } catch (err) {
+        console.error(err);
+        setToastMessage("Failed to submit timesheet entry. Please try again.");
+      }
+    })();
   };
 
-  const handleDelete = (entryId: number) => {
-    setTimesheetEntries(
-      timesheetEntries.filter((entry) => entry.id !== entryId),
-    );
+  const handleDelete = (entryId: string) => {
+    (async () => {
+      try {
+        await deleteStaffTimesheet(entryId);
+        setTimesheetEntries(
+          timesheetEntries.filter((entry) => entry.id !== entryId),
+        );
+      } catch (err) {
+        console.error(err);
+        setToastMessage("Failed to delete timesheet entry.");
+      }
+    })();
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "approved":
+      case "APPROVED":
         return "#52c41a";
-      case "rejected":
+      case "REJECTED":
         return "#ff4d4f";
-      case "pending":
+      case "PENDING":
         return "#faad14";
       default:
         return "#8c8c8c";
@@ -175,21 +176,21 @@ export default function StaffTimesheetsPage() {
 
   const getStatusBgColor = (status: string) => {
     switch (status) {
-      case "approved":
+      case "APPROVED":
         return "#f6ffed";
-      case "rejected":
+      case "REJECTED":
         return "#fff2f0";
-      case "pending":
+      case "PENDING":
         return "#fffbe6";
       default:
         return "#fafafa";
     }
   };
 
-  const filteredEntries = timesheetEntries.filter((entry) => {
-    if (filterStatus === "all") return true;
-    return entry.status === filterStatus;
-  });
+  const filteredEntries = useMemo(() => {
+    if (filterStatus === "all") return timesheetEntries;
+    return timesheetEntries.filter((entry) => entry.status === filterStatus);
+  }, [filterStatus, timesheetEntries]);
 
   // Calculate totals
   const totalHours = filteredEntries.reduce(
@@ -208,9 +209,34 @@ export default function StaffTimesheetsPage() {
     0,
   );
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <AuthNavbar currentPage="staff" userName={userName ?? undefined} />
+        <StaffSidebar activeItem="timesheets" />
+        <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="mb-8">
+              <h1 className="text-3xl" style={{ color: "#001f54" }}>
+                Loading timesheets...
+              </h1>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone="error"
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+      <AuthNavbar currentPage="staff" userName={userName ?? undefined} />
       <StaffSidebar activeItem="timesheets" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -309,7 +335,7 @@ export default function StaffTimesheetsPage() {
                   <select
                     value={selectedProjectId || ""}
                     onChange={(e) =>
-                      setSelectedProjectId(Number(e.target.value))
+                      setSelectedProjectId(e.target.value)
                     }
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 transition-all"
                     style={{
@@ -427,14 +453,14 @@ export default function StaffTimesheetsPage() {
                     All
                   </button>
                   <button
-                    onClick={() => setFilterStatus("pending")}
+                    onClick={() => setFilterStatus("PENDING")}
                     className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      filterStatus === "pending"
+                      filterStatus === "PENDING"
                         ? "text-white shadow-sm"
                         : "text-gray-600 bg-gray-100 hover:bg-gray-200"
                     }`}
                     style={
-                      filterStatus === "pending"
+                      filterStatus === "PENDING"
                         ? { backgroundColor: "#4169e1" }
                         : {}
                     }
@@ -442,14 +468,14 @@ export default function StaffTimesheetsPage() {
                     Pending
                   </button>
                   <button
-                    onClick={() => setFilterStatus("approved")}
+                    onClick={() => setFilterStatus("APPROVED")}
                     className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      filterStatus === "approved"
+                      filterStatus === "APPROVED"
                         ? "text-white shadow-sm"
                         : "text-gray-600 bg-gray-100 hover:bg-gray-200"
                     }`}
                     style={
-                      filterStatus === "approved"
+                      filterStatus === "APPROVED"
                         ? { backgroundColor: "#4169e1" }
                         : {}
                     }
@@ -457,14 +483,14 @@ export default function StaffTimesheetsPage() {
                     Approved
                   </button>
                   <button
-                    onClick={() => setFilterStatus("rejected")}
+                    onClick={() => setFilterStatus("REJECTED")}
                     className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      filterStatus === "rejected"
+                      filterStatus === "REJECTED"
                         ? "text-white shadow-sm"
                         : "text-gray-600 bg-gray-100 hover:bg-gray-200"
                     }`}
                     style={
-                      filterStatus === "rejected"
+                      filterStatus === "REJECTED"
                         ? { backgroundColor: "#4169e1" }
                         : {}
                     }
@@ -555,7 +581,7 @@ export default function StaffTimesheetsPage() {
                               color: getStatusColor(entry.status),
                             }}
                           >
-                            {entry.status}
+                            {entry.status.toLowerCase()}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
@@ -563,7 +589,7 @@ export default function StaffTimesheetsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex gap-2">
-                            {entry.status === "pending" && (
+                            {entry.status === "PENDING" && (
                               <button
                                 onClick={() => handleDelete(entry.id)}
                                 className="p-2 rounded-lg hover:bg-red-50 transition-colors"
@@ -623,9 +649,9 @@ export default function StaffTimesheetsPage() {
                             color: getStatusColor(entry.status),
                           }}
                         >
-                          {entry.status}
-                        </span>
-                      </div>
+                            {entry.status.toLowerCase()}
+                          </span>
+                        </div>
                     </div>
 
                     {entry.notes && (
@@ -638,7 +664,7 @@ export default function StaffTimesheetsPage() {
                       <p className="text-xs text-gray-500">
                         {entry.submittedAt}
                       </p>
-                      {entry.status === "pending" && (
+                      {entry.status === "PENDING" && (
                         <button
                           onClick={() => handleDelete(entry.id)}
                           className="p-2 rounded-lg hover:bg-red-50 transition-colors"

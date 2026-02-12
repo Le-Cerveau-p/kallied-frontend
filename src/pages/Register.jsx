@@ -28,6 +28,10 @@ export default function Register() {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    companyName: "",
+    department: "",
+    address: "",
+    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -42,6 +46,10 @@ export default function Register() {
     if (!form.name) e.name = "Full name is required";
     if (!form.email) e.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Invalid email format";
+    if (!form.companyName) e.companyName = "Company name is required";
+    if (!form.department) e.department = "Department is required";
+    if (!form.address) e.address = "Address is required";
+    if (!form.phone) e.phone = "Phone number is required";
 
     if (!form.password) e.password = "Password required";
     else if (form.password.length < 6) e.password = "Minimum 6 characters";
@@ -64,6 +72,10 @@ export default function Register() {
       await api.post("/auth/register", {
         name: form.name,
         email: form.email,
+        companyName: form.companyName,
+        department: form.department,
+        address: form.address,
+        phone: form.phone,
         password: form.password,
       });
 
@@ -126,6 +138,78 @@ export default function Register() {
             </div>
             {errors.email && (
               <p className="text-red-500 text-xs">{errors.email}</p>
+            )}
+          </div>
+
+          {/* Company Name */}
+          <div>
+            <label className="text-sm font-medium">Company Name</label>
+            <div className="relative mt-1">
+              <UserIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                className="w-full pl-10 py-2 border rounded-lg bg-gray-50"
+                placeholder="Client Company Name"
+                value={form.companyName}
+                onChange={(e) =>
+                  setForm({ ...form, companyName: e.target.value })
+                }
+              />
+            </div>
+            {errors.companyName && (
+              <p className="text-red-500 text-xs">{errors.companyName}</p>
+            )}
+          </div>
+
+          {/* Department */}
+          <div>
+            <label className="text-sm font-medium">Department</label>
+            <div className="relative mt-1">
+              <UserIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                className="w-full pl-10 py-2 border rounded-lg bg-gray-50"
+                placeholder="Client Department"
+                value={form.department}
+                onChange={(e) =>
+                  setForm({ ...form, department: e.target.value })
+                }
+              />
+            </div>
+            {errors.department && (
+              <p className="text-red-500 text-xs">{errors.department}</p>
+            )}
+          </div>
+
+          {/* Address */}
+          <div>
+            <label className="text-sm font-medium">Address</label>
+            <div className="relative mt-1">
+              <UserIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                className="w-full pl-10 py-2 border rounded-lg bg-gray-50"
+                placeholder="456 Client Avenue, Floor 5"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </div>
+            {errors.address && (
+              <p className="text-red-500 text-xs">{errors.address}</p>
+            )}
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="text-sm font-medium">Phone Number</label>
+            <div className="relative mt-1">
+              <UserIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                className="w-full pl-10 py-2 border rounded-lg bg-gray-50"
+                placeholder="(555) 123-4567"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </div>
+            {errors.phone && (
+              <p className="text-red-500 text-xs">{errors.phone}</p>
             )}
           </div>
 

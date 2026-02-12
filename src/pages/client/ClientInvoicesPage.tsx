@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import ClientSidebar from "../../components/ClientSidebar";
+import Toast from "../../components/Toast";
 import {
   X,
   Download,
   FileText,
   Calendar,
-  DollarSign,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -18,10 +18,14 @@ import {
   Mail,
   Phone,
   MapPin,
+  CreditCard,
 } from "lucide-react";
+import { getClientInvoices, markClientInvoicePaid } from "../../api/client";
+import { getCurrentUser } from "../../api/users";
+import { downloadFile } from "../../utils/download";
 
 interface LineItem {
-  id: number;
+  id: string;
   description: string;
   quantity: number;
   rate: number;
@@ -29,272 +33,100 @@ interface LineItem {
 }
 
 interface Invoice {
-  id: number;
+  id: string;
   invoiceNumber: string;
   projectName: string;
   projectId: string;
   amount: number;
-  dueDate: string;
-  issueDate: string;
+  dueDate: string | Date;
+  issueDate: string | Date;
   status: "Paid" | "Pending" | "Overdue";
-  paidDate?: string;
+  paidDate?: string | Date | null;
   lineItems: LineItem[];
-  notes?: string;
+  notes?: string | null;
   subtotal: number;
   tax: number;
   total: number;
+  clientMarkedPaid: boolean;
+  clientMarkedPaidAt?: string | Date | null;
+  invoiceUrl: string;
+  receiptUrl?: string | null;
+  canDownload: boolean;
+  companyInfo: {
+    name: string;
+    department?: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+  };
+  clientInfo: {
+    name: string;
+    email: string;
+    companyName?: string | null;
+    department?: string | null;
+    address?: string | null;
+    phone?: string | null;
+  };
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export default function ClientInvoicesPage() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Mock invoices data
-  const allInvoices: Invoice[] = [
-    {
-      id: 1,
-      invoiceNumber: "INV-2026-001",
-      projectName: "Website Redesign",
-      projectId: "PRJ-1001",
-      amount: 15000,
-      dueDate: "Jan 31, 2026",
-      issueDate: "Jan 15, 2026",
-      status: "Pending",
-      subtotal: 15000,
-      tax: 1500,
-      total: 16500,
-      lineItems: [
-        {
-          id: 1,
-          description: "UI/UX Design - Homepage & Landing Pages",
-          quantity: 80,
-          rate: 125,
-          amount: 10000,
-        },
-        {
-          id: 2,
-          description: "Frontend Development - React Components",
-          quantity: 40,
-          rate: 150,
-          amount: 6000,
-        },
-        {
-          id: 3,
-          description: "Responsive Mobile Optimization",
-          quantity: 20,
-          rate: 125,
-          amount: 2500,
-        },
-        {
-          id: 4,
-          description: "Browser Testing & QA",
-          quantity: 10,
-          rate: 100,
-          amount: 1000,
-        },
-      ],
-      notes:
-        "Payment due within 30 days of invoice date. Late payments subject to 1.5% monthly interest.",
-    },
-    {
-      id: 2,
-      invoiceNumber: "INV-2026-002",
-      projectName: "Mobile App Development",
-      projectId: "PRJ-1002",
-      amount: 28500,
-      dueDate: "Feb 15, 2026",
-      issueDate: "Jan 18, 2026",
-      status: "Pending",
-      subtotal: 28500,
-      tax: 2850,
-      total: 31350,
-      lineItems: [
-        {
-          id: 1,
-          description: "iOS App Development - Phase 1",
-          quantity: 120,
-          rate: 150,
-          amount: 18000,
-        },
-        {
-          id: 2,
-          description: "Android App Development - Phase 1",
-          quantity: 100,
-          rate: 150,
-          amount: 15000,
-        },
-        {
-          id: 3,
-          description: "API Integration Services",
-          quantity: 30,
-          rate: 175,
-          amount: 5250,
-        },
-        {
-          id: 4,
-          description: "App Store Submission & Setup",
-          quantity: 8,
-          rate: 125,
-          amount: 1000,
-        },
-      ],
-      notes: "Milestone 1 of 3. Next invoice upon completion of Phase 2.",
-    },
-    {
-      id: 3,
-      invoiceNumber: "INV-2025-098",
-      projectName: "Brand Identity Package",
-      projectId: "PRJ-0998",
-      amount: 8500,
-      dueDate: "Dec 31, 2025",
-      issueDate: "Dec 15, 2025",
-      status: "Paid",
-      paidDate: "Dec 28, 2025",
-      subtotal: 8500,
-      tax: 850,
-      total: 9350,
-      lineItems: [
-        {
-          id: 1,
-          description: "Logo Design & Brand Guidelines",
-          quantity: 40,
-          rate: 150,
-          amount: 6000,
-        },
-        {
-          id: 2,
-          description: "Business Card & Stationery Design",
-          quantity: 15,
-          rate: 125,
-          amount: 1875,
-        },
-        {
-          id: 3,
-          description: "Social Media Asset Templates",
-          quantity: 10,
-          rate: 125,
-          amount: 1250,
-        },
-        {
-          id: 4,
-          description: "Brand Style Guide Documentation",
-          quantity: 8,
-          rate: 100,
-          amount: 800,
-        },
-      ],
-      notes: "Thank you for your prompt payment!",
-    },
-    {
-      id: 4,
-      invoiceNumber: "INV-2025-089",
-      projectName: "E-commerce Platform",
-      projectId: "PRJ-0985",
-      amount: 42000,
-      dueDate: "Dec 15, 2025",
-      issueDate: "Nov 20, 2025",
-      status: "Overdue",
-      subtotal: 42000,
-      tax: 4200,
-      total: 46200,
-      lineItems: [
-        {
-          id: 1,
-          description: "E-commerce Platform Setup - Shopify",
-          quantity: 60,
-          rate: 175,
-          amount: 10500,
-        },
-        {
-          id: 2,
-          description: "Custom Theme Development",
-          quantity: 100,
-          rate: 150,
-          amount: 15000,
-        },
-        {
-          id: 3,
-          description: "Product Catalog Migration (500 products)",
-          quantity: 80,
-          rate: 125,
-          amount: 10000,
-        },
-        {
-          id: 4,
-          description: "Payment Gateway Integration",
-          quantity: 30,
-          rate: 175,
-          amount: 5250,
-        },
-        {
-          id: 5,
-          description: "Inventory Management System",
-          quantity: 25,
-          rate: 150,
-          amount: 3750,
-        },
-      ],
-      notes:
-        "OVERDUE: Payment was due Dec 15, 2025. Please remit payment immediately to avoid service interruption.",
-    },
-    {
-      id: 5,
-      invoiceNumber: "INV-2025-095",
-      projectName: "Website Redesign",
-      projectId: "PRJ-1001",
-      amount: 12000,
-      dueDate: "Dec 20, 2025",
-      issueDate: "Nov 25, 2025",
-      status: "Paid",
-      paidDate: "Dec 18, 2025",
-      subtotal: 12000,
-      tax: 1200,
-      total: 13200,
-      lineItems: [
-        {
-          id: 1,
-          description: "Initial Design Concepts & Wireframes",
-          quantity: 50,
-          rate: 125,
-          amount: 6250,
-        },
-        {
-          id: 2,
-          description: "Content Strategy & Planning",
-          quantity: 20,
-          rate: 150,
-          amount: 3000,
-        },
-        {
-          id: 3,
-          description: "Photography & Image Curation",
-          quantity: 15,
-          rate: 100,
-          amount: 1500,
-        },
-        {
-          id: 4,
-          description: "Project Management & Client Meetings",
-          quantity: 18,
-          rate: 125,
-          amount: 2250,
-        },
-      ],
-      notes:
-        "Deposit payment for Website Redesign project. Remaining balance due upon completion.",
-    },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      try {
+        const [invoices, user] = await Promise.all([
+          getClientInvoices(),
+          getCurrentUser(),
+        ]);
+        if (isMounted) {
+          setAllInvoices(invoices);
+          setUserData(user);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-  // Filter invoices
-  const filteredInvoices = allInvoices.filter((invoice) => {
-    const matchesSearch =
-      invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.projectName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "All Status" || invoice.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const formatDate = (value: string | Date | null | undefined) => {
+    if (!value) return "N/A";
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString();
+  };
+
+  const filteredInvoices = useMemo(
+    () =>
+      allInvoices.filter((invoice) => {
+        const matchesSearch =
+          invoice.invoiceNumber
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          invoice.projectName.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus =
+          statusFilter === "All Status" || invoice.status === statusFilter;
+        return matchesSearch && matchesStatus && invoice.canDownload;
+      }),
+    [allInvoices, searchTerm, statusFilter],
+  );
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -317,7 +149,32 @@ export default function ClientInvoicesPage() {
     }
   };
 
-  // Calculate totals
+  const handleMarkPaid = async (invoiceId: string) => {
+    await markClientInvoicePaid(invoiceId);
+    const invoices = await getClientInvoices();
+    setAllInvoices(invoices);
+    if (selectedInvoice?.id === invoiceId) {
+      const updated = invoices.find((inv) => inv.id === invoiceId) ?? null;
+      setSelectedInvoice(updated);
+    }
+  };
+
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    if (!invoice.canDownload) {
+      setToastMessage("Invoice is not yet approved for download.");
+      return;
+    }
+    try {
+      await downloadFile(
+        invoice.invoiceUrl,
+        `invoice-${invoice.invoiceNumber}.pdf`,
+      );
+    } catch (err) {
+      console.error(err);
+      setToastMessage("Unable to download invoice. Please try again.");
+    }
+  };
+
   const totalAmount = allInvoices.reduce((sum, inv) => sum + inv.total, 0);
   const paidAmount = allInvoices
     .filter((inv) => inv.status === "Paid")
@@ -331,22 +188,30 @@ export default function ClientInvoicesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar currentPage="client" />
+      {toastMessage && (
+        <Toast message={toastMessage} tone="error" onClose={() => setToastMessage(null)} />
+      )}
+      <AuthNavbar
+        currentPage="client"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <ClientSidebar activeItem="invoices" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
         <div className="max-w-7xl mx-auto">
-          {/* Page Header */}
           <div className="mb-6">
             <h1 className="text-4xl mb-2" style={{ color: "#001f54" }}>
               Invoices & Billing
             </h1>
             <p className="text-gray-600">
-              View and manage your project invoices
+              View and manage your project invoices. You can indicate when
+              you�ve made payment so our team can confirm it.
             </p>
           </div>
 
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-xl shadow-sm p-5">
               <div className="flex items-center gap-3 mb-2">
@@ -361,7 +226,7 @@ export default function ClientInvoicesPage() {
                     Total Billed
                   </p>
                   <p className="text-xl font-bold" style={{ color: "#001f54" }}>
-                    ${totalAmount.toLocaleString()}
+                    ₦{totalAmount.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -383,7 +248,7 @@ export default function ClientInvoicesPage() {
                     Paid
                   </p>
                   <p className="text-xl font-bold" style={{ color: "#32cd32" }}>
-                    ${paidAmount.toLocaleString()}
+                    ₦{paidAmount.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -402,7 +267,7 @@ export default function ClientInvoicesPage() {
                     Pending
                   </p>
                   <p className="text-xl font-bold" style={{ color: "#ff9800" }}>
-                    ${pendingAmount.toLocaleString()}
+                    ₦{pendingAmount.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -424,17 +289,15 @@ export default function ClientInvoicesPage() {
                     Overdue
                   </p>
                   <p className="text-xl font-bold" style={{ color: "#dc2626" }}>
-                    ${overdueAmount.toLocaleString()}
+                    ₦{overdueAmount.toLocaleString()}
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Filters */}
           <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Search */}
               <div className="relative">
                 <Search
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -455,7 +318,6 @@ export default function ClientInvoicesPage() {
                 />
               </div>
 
-              {/* Status Filter */}
               <div className="relative">
                 <Filter
                   className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -481,7 +343,6 @@ export default function ClientInvoicesPage() {
             </div>
           </div>
 
-          {/* Invoice Table */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             {filteredInvoices.length === 0 ? (
               <div className="p-12 text-center">
@@ -503,7 +364,6 @@ export default function ClientInvoicesPage() {
               </div>
             ) : (
               <>
-                {/* Desktop Table */}
                 <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full">
                     <thead
@@ -571,19 +431,19 @@ export default function ClientInvoicesPage() {
                                 className="text-sm font-semibold"
                                 style={{ color: "#001f54" }}
                               >
-                                ${invoice.total.toLocaleString()}
+                                ₦{invoice.total.toLocaleString()}
                               </p>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <Calendar className="w-4 h-4 text-gray-400" />
-                                {invoice.issueDate}
+                                {formatDate(invoice.issueDate)}
                               </div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2 text-sm text-gray-600">
                                 <Calendar className="w-4 h-4 text-gray-400" />
-                                {invoice.dueDate}
+                                {formatDate(invoice.dueDate)}
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -594,6 +454,11 @@ export default function ClientInvoicesPage() {
                                 <StatusIcon className="w-3.5 h-3.5" />
                                 {invoice.status}
                               </span>
+                              {invoice.clientMarkedPaid && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Payment marked by you
+                                </p>
+                              )}
                             </td>
                             <td className="px-6 py-4">
                               <button
@@ -612,7 +477,6 @@ export default function ClientInvoicesPage() {
                   </table>
                 </div>
 
-                {/* Mobile Cards */}
                 <div
                   className="lg:hidden divide-y"
                   style={{ borderColor: "#e5e7eb" }}
@@ -653,13 +517,13 @@ export default function ClientInvoicesPage() {
                               className="font-semibold"
                               style={{ color: "#001f54" }}
                             >
-                              ${invoice.total.toLocaleString()}
+                              ₦{invoice.total.toLocaleString()}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">Due Date:</span>
                             <span className="text-gray-900">
-                              {invoice.dueDate}
+                              {formatDate(invoice.dueDate)}
                             </span>
                           </div>
                         </div>
@@ -680,11 +544,9 @@ export default function ClientInvoicesPage() {
         </div>
       </main>
 
-      {/* Invoice Detail Drawer */}
       {selectedInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-end">
           <div className="bg-white h-full w-full max-w-3xl overflow-y-auto shadow-2xl">
-            {/* Drawer Header */}
             <div
               className="sticky top-0 bg-white border-b z-10"
               style={{ borderColor: "#e5e7eb" }}
@@ -708,14 +570,37 @@ export default function ClientInvoicesPage() {
                   <X className="w-6 h-6 text-gray-500" />
                 </button>
               </div>
-              <div className="px-6 pb-4 flex items-center gap-3">
+              <div className="px-6 pb-4 flex flex-wrap items-center gap-3">
                 <button
+                  onClick={() => handleDownloadInvoice(selectedInvoice)}
                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:shadow-md"
                   style={{ backgroundColor: "#4169e1", color: "white" }}
                 >
                   <Download className="w-4 h-4" />
-                  Download PDF
+                  Download Invoice
                 </button>
+                {selectedInvoice.receiptUrl && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await downloadFile(
+                          selectedInvoice.receiptUrl ?? "",
+                          `receipt-${selectedInvoice.invoiceNumber}.pdf`,
+                        );
+                      } catch (err) {
+                        console.error(err);
+                        setToastMessage(
+                          "Unable to download receipt. Please try again.",
+                        );
+                      }
+                    }}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:shadow-md"
+                    style={{ backgroundColor: "#a7fc00", color: "#001f54" }}
+                  >
+                    <Receipt className="w-4 h-4" />
+                    Download Receipt
+                  </button>
+                )}
                 {(() => {
                   const statusStyle = getStatusStyle(selectedInvoice.status);
                   const StatusIcon = statusStyle.icon;
@@ -732,9 +617,7 @@ export default function ClientInvoicesPage() {
               </div>
             </div>
 
-            {/* Drawer Content */}
             <div className="p-6 space-y-6">
-              {/* Company & Client Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -745,25 +628,33 @@ export default function ClientInvoicesPage() {
                       <Building className="w-4 h-4 text-gray-400 mt-0.5" />
                       <div>
                         <p className="font-semibold text-gray-900">
-                          Your Company Name
+                          {selectedInvoice.companyInfo.name}
                         </p>
-                        <p className="text-sm text-gray-600">
-                          Professional Services
-                        </p>
+                        {selectedInvoice.companyInfo.department && (
+                          <p className="text-sm text-gray-600">
+                            {selectedInvoice.companyInfo.department}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      123 Business Street, Suite 100
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      billing@yourcompany.com
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      (555) 123-4567
-                    </div>
+                    {selectedInvoice.companyInfo.address && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        {selectedInvoice.companyInfo.address}
+                      </div>
+                    )}
+                    {selectedInvoice.companyInfo.email && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        {selectedInvoice.companyInfo.email}
+                      </div>
+                    )}
+                    {selectedInvoice.companyInfo.phone && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        {selectedInvoice.companyInfo.phone}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -776,33 +667,44 @@ export default function ClientInvoicesPage() {
                       <Building className="w-4 h-4 text-gray-400 mt-0.5" />
                       <div>
                         <p className="font-semibold text-gray-900">
-                          Client Company Name
+                          {selectedInvoice.clientInfo.companyName ||
+                            selectedInvoice.clientInfo.name}
                         </p>
-                        <p className="text-sm text-gray-600">
-                          Client Department
-                        </p>
+                        {selectedInvoice.clientInfo.department && (
+                          <p className="text-sm text-gray-600">
+                            {selectedInvoice.clientInfo.department}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      456 Client Avenue, Floor 5
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      accounts@clientcompany.com
-                    </div>
+                    {selectedInvoice.clientInfo.address && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        {selectedInvoice.clientInfo.address}
+                      </div>
+                    )}
+                    {selectedInvoice.clientInfo.email && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        {selectedInvoice.clientInfo.email}
+                      </div>
+                    )}
+                    {selectedInvoice.clientInfo.phone && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        {selectedInvoice.clientInfo.phone}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Invoice Details */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
                     Invoice Date
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedInvoice.issueDate}
+                    {formatDate(selectedInvoice.issueDate)}
                   </p>
                 </div>
                 <div>
@@ -810,7 +712,7 @@ export default function ClientInvoicesPage() {
                     Due Date
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedInvoice.dueDate}
+                    {formatDate(selectedInvoice.dueDate)}
                   </p>
                 </div>
                 {selectedInvoice.paidDate && (
@@ -822,7 +724,7 @@ export default function ClientInvoicesPage() {
                       className="text-sm font-medium"
                       style={{ color: "#32cd32" }}
                     >
-                      {selectedInvoice.paidDate}
+                      {formatDate(selectedInvoice.paidDate)}
                     </p>
                   </div>
                 )}
@@ -836,7 +738,6 @@ export default function ClientInvoicesPage() {
                 </div>
               </div>
 
-              {/* Line Items */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">
                   Line Items
@@ -845,7 +746,6 @@ export default function ClientInvoicesPage() {
                   className="border rounded-lg overflow-hidden"
                   style={{ borderColor: "#e5e7eb" }}
                 >
-                  {/* Desktop Table */}
                   <div className="hidden sm:block">
                     <table className="w-full">
                       <thead
@@ -880,10 +780,10 @@ export default function ClientInvoicesPage() {
                               {item.quantity}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600 text-right font-mono">
-                              ${item.rate.toFixed(2)}
+                              ₦{item.rate.toFixed(2)}
                             </td>
                             <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right font-mono">
-                              ${item.amount.toLocaleString()}
+                              ₦{item.amount.toLocaleString()}
                             </td>
                           </tr>
                         ))}
@@ -891,7 +791,6 @@ export default function ClientInvoicesPage() {
                     </table>
                   </div>
 
-                  {/* Mobile List */}
                   <div
                     className="sm:hidden divide-y"
                     style={{ borderColor: "#e5e7eb" }}
@@ -911,12 +810,12 @@ export default function ClientInvoicesPage() {
                           <div>
                             <span className="text-gray-500">Rate:</span>
                             <span className="ml-1 text-gray-900">
-                              ${item.rate}
+                              ₦{item.rate}
                             </span>
                           </div>
                           <div className="text-right">
                             <span className="font-semibold text-gray-900">
-                              ${item.amount.toLocaleString()}
+                              ₦{item.amount.toLocaleString()}
                             </span>
                           </div>
                         </div>
@@ -926,19 +825,18 @@ export default function ClientInvoicesPage() {
                 </div>
               </div>
 
-              {/* Totals */}
               <div className="border-t pt-4" style={{ borderColor: "#e5e7eb" }}>
                 <div className="max-w-sm ml-auto space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Subtotal:</span>
                     <span className="font-mono text-gray-900">
-                      ${selectedInvoice.subtotal.toLocaleString()}
+                      ₦{selectedInvoice.subtotal.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Tax (10%):</span>
+                    <span className="text-gray-600">Tax:</span>
                     <span className="font-mono text-gray-900">
-                      ${selectedInvoice.tax.toLocaleString()}
+                      ₦{selectedInvoice.tax.toLocaleString()}
                     </span>
                   </div>
                   <div
@@ -947,13 +845,12 @@ export default function ClientInvoicesPage() {
                   >
                     <span style={{ color: "#001f54" }}>Total:</span>
                     <span className="font-mono" style={{ color: "#001f54" }}>
-                      ${selectedInvoice.total.toLocaleString()}
+                      ₦{selectedInvoice.total.toLocaleString()}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Payment Status */}
               <div
                 className="p-4 rounded-lg"
                 style={{
@@ -977,7 +874,7 @@ export default function ClientInvoicesPage() {
                       </div>
                     );
                   })()}
-                  <div>
+                  <div className="flex-1">
                     <h4
                       className="font-semibold mb-1"
                       style={{
@@ -988,17 +885,43 @@ export default function ClientInvoicesPage() {
                     </h4>
                     <p className="text-sm text-gray-700">
                       {selectedInvoice.status === "Paid" &&
-                        `Payment received on ${selectedInvoice.paidDate}. Thank you for your business!`}
+                        `Payment received on ${formatDate(
+                          selectedInvoice.paidDate,
+                        )}. Thank you for your business!`}
                       {selectedInvoice.status === "Pending" &&
-                        `Payment is due by ${selectedInvoice.dueDate}. Please remit payment by the due date.`}
+                        `Payment is due by ${formatDate(
+                          selectedInvoice.dueDate,
+                        )}. Please remit payment by the due date.`}
                       {selectedInvoice.status === "Overdue" &&
-                        `This invoice is overdue. Payment was due on ${selectedInvoice.dueDate}. Please contact our billing department.`}
+                        `This invoice is overdue. Payment was due on ${formatDate(
+                          selectedInvoice.dueDate,
+                        )}. Please contact our billing department.`}
                     </p>
+                    {selectedInvoice.clientMarkedPaid && (
+                      <p className="text-xs text-gray-600 mt-2">
+                        You already marked this invoice as paid on{" "}
+                        {formatDate(selectedInvoice.clientMarkedPaidAt)}.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Notes */}
+              {selectedInvoice.status !== "Paid" &&
+                !selectedInvoice.clientMarkedPaid && (
+                  <button
+                    onClick={() => handleMarkPaid(selectedInvoice.id)}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:shadow-lg"
+                    style={{
+                      backgroundColor: "#a7fc00",
+                      color: "#001f54",
+                    }}
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    I've made payment
+                  </button>
+                )}
+
               {selectedInvoice.notes && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">
@@ -1010,7 +933,6 @@ export default function ClientInvoicesPage() {
                 </div>
               )}
 
-              {/* Footer */}
               <div
                 className="pt-6 border-t text-center text-xs text-gray-500"
                 style={{ borderColor: "#e5e7eb" }}

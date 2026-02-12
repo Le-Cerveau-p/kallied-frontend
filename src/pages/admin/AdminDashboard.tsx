@@ -1,6 +1,7 @@
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { adminSocket } from "../../socket/adminSocket";
 import {
   getAdminDashboard,
@@ -13,8 +14,6 @@ import {
   Users,
   ClipboardCheck,
   ShoppingCart,
-  CheckCircle,
-  XCircle,
   Eye,
   Activity,
   Clock,
@@ -27,14 +26,40 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
-import { api } from "../../api/index";
+import { getCurrentUser } from "../../api/users";
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [userData, setUserData] = useState<UserData | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+    setLoading(false);
+  }, []);
   const [stats, setStats] = useState<any>(null);
   const [pendingProjects, setPendingProjects] = useState<any[]>([]);
   const [pendingProcurement, setPendingProcurement] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [projectStatusData, setProjectStatusData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const STATUS_COLORS: Record<string, string> = {
     ACTIVE: "#22c55e",
     COMPLETED: "#3b82f6",
@@ -54,6 +79,7 @@ export default function AdminDashboard() {
       setPendingProcurement(procurements);
 
       console.log("dash: ", dashboard);
+      console.log("pend: ", projects);
     }
 
     loadDashboard();
@@ -86,29 +112,15 @@ export default function AdminDashboard() {
     });
   }, []);
 
-  const approveProject = async (projectId: string) => {
-    await api.post(`/projects/${projectId}/approve`);
-    setPendingProjects((prev) => prev.filter((p) => p.id !== projectId));
-  };
-
-  const rejectProject = async (projectId: string) => {
-    await api.post(`/projects/${projectId}/reject`);
-    setPendingProjects((prev) => prev.filter((p) => p.id !== projectId));
-  };
-
-  const approveProcurement = async (procurementId: string) => {
-    await api.post(`/procurement/${procurementId}/approve`);
-    setPendingProcurement((prev) => prev.filter((p) => p.id !== procurementId));
-  };
-
-  const rejectProcurement = async (procurementId: string) => {
-    await api.post(`/procurement/${procurementId}/reject`);
-    setPendingProcurement((prev) => prev.filter((p) => p.id !== procurementId));
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar currentPage="dashboard" />
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <AdminSidebar activeItem="dashboard" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -259,13 +271,13 @@ export default function AdminDashboard() {
                             {project.name}
                           </h4>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
-                            <span>Client: {project.client}</span>
+                            <span>Client: {project.client.name}</span>
                             <span>•</span>
-                            <span>Requested by: {project.requestedBy}</span>
+                            <span>Requested by: {project.createdBy?.name}</span>
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {project.dateSubmitted}
+                              {project.createdAt}
                             </span>
                           </div>
                           <p
@@ -277,27 +289,9 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-1"
-                            style={{
-                              backgroundColor: "#a7fc00",
-                              color: "#001f54",
-                            }}
-                            onClick={() => approveProject(project.id)}
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Approve
-                          </button>
-                          <button
-                            className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 hover:bg-gray-300 transition-colors flex items-center gap-1"
-                            style={{ color: "#001f54" }}
-                            onClick={() => rejectProject(project.id)}
-                          >
-                            <XCircle className="w-4 h-4" />
-                            Reject
-                          </button>
-                          <button
                             className="px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors"
                             style={{ color: "#4169e1" }}
+                            onClick={() => navigate("/admin/projects")}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -333,13 +327,13 @@ export default function AdminDashboard() {
                             {item.item}
                           </h4>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
-                            <span>Project: {item.project}</span>
+                            <span>Project: {item.project.name}</span>
                             <span>•</span>
-                            <span>Requested by: {item.requestedBy}</span>
+                            <span>Requested by: {item.createdBy.name}</span>
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {item.dateSubmitted}
+                              {item.createdAt}
                             </span>
                           </div>
                           <p
@@ -351,27 +345,9 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-1"
-                            style={{
-                              backgroundColor: "#a7fc00",
-                              color: "#001f54",
-                            }}
-                            onClick={() => approveProcurement(item.id)}
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Approve
-                          </button>
-                          <button
-                            className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 hover:bg-gray-300 transition-colors flex items-center gap-1"
-                            style={{ color: "#001f54" }}
-                            onClick={() => rejectProcurement(item.id)}
-                          >
-                            <XCircle className="w-4 h-4" />
-                            Reject
-                          </button>
-                          <button
                             className="px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-100 transition-colors"
                             style={{ color: "#4169e1" }}
+                            onClick={() => navigate("/admin/procurements")}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -400,6 +376,7 @@ export default function AdminDashboard() {
                     </h2>
                   </div>
                   <button
+                    onClick={() => navigate("/admin/logs")}
                     className="text-sm hover:underline"
                     style={{ color: "#4169e1" }}
                   >
@@ -416,7 +393,7 @@ export default function AdminDashboard() {
                         className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
                         style={{ backgroundColor: "#4169e1" }}
                       >
-                        {activity.user
+                        {activity.actor.name
                           .split(" ")
                           .map((n) => n[0])
                           .join("")}
@@ -427,7 +404,7 @@ export default function AdminDashboard() {
                             className="font-medium"
                             style={{ color: "#001f54" }}
                           >
-                            {activity.user}
+                            {activity.actor.name}
                           </span>{" "}
                           <span className="text-gray-600">
                             {activity.action}
@@ -518,28 +495,32 @@ export default function AdminDashboard() {
                 </h2>
                 <div className="space-y-3">
                   <button
+                    onClick={() => navigate("/admin/projects")}
                     className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity text-left"
                     style={{ backgroundColor: "#4169e1" }}
                   >
                     View All Projects
                   </button>
                   <button
+                    onClick={() => navigate("/admin/users")}
                     className="w-full px-4 py-3 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity text-left"
                     style={{ backgroundColor: "#001f54" }}
                   >
                     Manage Users
                   </button>
                   <button
+                    onClick={() => navigate("/admin/logs")}
                     className="w-full px-4 py-3 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors text-left"
                     style={{ color: "#001f54" }}
                   >
                     View Activity Logs
                   </button>
                   <button
+                    onClick={() => navigate("/admin/analytics")}
                     className="w-full px-4 py-3 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors text-left"
                     style={{ color: "#001f54" }}
                   >
-                    Generate Reports
+                    View Analytics
                   </button>
                 </div>
               </div>

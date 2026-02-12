@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import ClientSidebar from "../../components/ClientSidebar";
 import {
@@ -13,330 +13,104 @@ import {
   ChevronUp,
   CircleDot,
 } from "lucide-react";
+import { getClientProjects } from "../../api/client";
+import { getCurrentUser } from "../../api/users";
 
 interface Milestone {
-  id: number;
+  id: string;
   name: string;
-  dueDate: string;
+  dueDate: string | Date;
   status: "completed" | "in-progress" | "pending";
 }
 
 interface StaffUpdate {
   note: string;
-  timestamp: string;
+  timestamp: string | Date;
   author: string;
 }
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   status: "Pending" | "In Progress" | "Completed";
-  startDate: string;
-  expectedCompletion: string;
+  startDate: string | Date;
+  expectedCompletion: string | Date | null;
   progress: number;
   milestones: Milestone[];
-  latestUpdate: StaffUpdate;
+  latestUpdate: StaffUpdate | null;
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export default function ClientProjectsPage() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [expandedProject, setExpandedProject] = useState<number | null>(null);
+  const [expandedProject, setExpandedProject] = useState<string | null>(null);
 
-  // Mock projects data
-  const allProjects: Project[] = [
-    {
-      id: 1,
-      name: "Website Redesign",
-      status: "In Progress",
-      startDate: "Dec 1, 2025",
-      expectedCompletion: "Jan 25, 2026",
-      progress: 73,
-      milestones: [
-        {
-          id: 1,
-          name: "Requirements Gathering",
-          dueDate: "Dec 5, 2025",
-          status: "completed",
-        },
-        {
-          id: 2,
-          name: "Wireframe Design",
-          dueDate: "Dec 12, 2025",
-          status: "completed",
-        },
-        {
-          id: 3,
-          name: "UI/UX Design",
-          dueDate: "Dec 20, 2025",
-          status: "in-progress",
-        },
-        {
-          id: 4,
-          name: "Development",
-          dueDate: "Jan 10, 2026",
-          status: "pending",
-        },
-        {
-          id: 5,
-          name: "Testing & QA",
-          dueDate: "Jan 20, 2026",
-          status: "pending",
-        },
-        {
-          id: 6,
-          name: "Final Deployment",
-          dueDate: "Jan 25, 2026",
-          status: "pending",
-        },
-      ],
-      latestUpdate: {
-        note: "UI/UX design phase is progressing well. We have completed 3 out of 5 screens and incorporated your feedback from the last review.",
-        timestamp: "2 hours ago",
-        author: "Sarah Chen, Project Manager",
-      },
-    },
-    {
-      id: 2,
-      name: "Mobile App Development",
-      status: "In Progress",
-      startDate: "Nov 15, 2025",
-      expectedCompletion: "Feb 28, 2026",
-      progress: 45,
-      milestones: [
-        {
-          id: 1,
-          name: "Project Kickoff",
-          dueDate: "Nov 18, 2025",
-          status: "completed",
-        },
-        {
-          id: 2,
-          name: "Backend API Development",
-          dueDate: "Dec 15, 2025",
-          status: "completed",
-        },
-        {
-          id: 3,
-          name: "Mobile UI Implementation",
-          dueDate: "Jan 15, 2026",
-          status: "in-progress",
-        },
-        {
-          id: 4,
-          name: "Integration Testing",
-          dueDate: "Feb 10, 2026",
-          status: "pending",
-        },
-        {
-          id: 5,
-          name: "Beta Launch",
-          dueDate: "Feb 28, 2026",
-          status: "pending",
-        },
-      ],
-      latestUpdate: {
-        note: "Backend API integration is complete. Authentication module has been tested and approved. Moving forward with mobile UI implementation.",
-        timestamp: "5 hours ago",
-        author: "James Wilson, Lead Developer",
-      },
-    },
-    {
-      id: 3,
-      name: "Brand Identity Package",
-      status: "Pending",
-      startDate: "Jan 5, 2026",
-      expectedCompletion: "Feb 15, 2026",
-      progress: 15,
-      milestones: [
-        {
-          id: 1,
-          name: "Brand Discovery Session",
-          dueDate: "Jan 8, 2026",
-          status: "completed",
-        },
-        {
-          id: 2,
-          name: "Logo Concepts",
-          dueDate: "Jan 15, 2026",
-          status: "in-progress",
-        },
-        {
-          id: 3,
-          name: "Brand Guidelines",
-          dueDate: "Jan 30, 2026",
-          status: "pending",
-        },
-        {
-          id: 4,
-          name: "Marketing Collateral",
-          dueDate: "Feb 10, 2026",
-          status: "pending",
-        },
-        {
-          id: 5,
-          name: "Final Delivery",
-          dueDate: "Feb 15, 2026",
-          status: "pending",
-        },
-      ],
-      latestUpdate: {
-        note: "Awaiting your feedback on the three logo concepts we presented. Please review and share your preferences by end of week.",
-        timestamp: "1 day ago",
-        author: "Maria Rodriguez, Creative Director",
-      },
-    },
-    {
-      id: 4,
-      name: "E-commerce Platform",
-      status: "In Progress",
-      startDate: "Oct 1, 2025",
-      expectedCompletion: "Jan 30, 2026",
-      progress: 88,
-      milestones: [
-        {
-          id: 1,
-          name: "Platform Setup",
-          dueDate: "Oct 10, 2025",
-          status: "completed",
-        },
-        {
-          id: 2,
-          name: "Product Catalog Integration",
-          dueDate: "Nov 1, 2025",
-          status: "completed",
-        },
-        {
-          id: 3,
-          name: "Payment Gateway Setup",
-          dueDate: "Nov 20, 2025",
-          status: "completed",
-        },
-        {
-          id: 4,
-          name: "User Testing",
-          dueDate: "Dec 15, 2025",
-          status: "completed",
-        },
-        {
-          id: 5,
-          name: "Security Audit",
-          dueDate: "Jan 10, 2026",
-          status: "in-progress",
-        },
-        {
-          id: 6,
-          name: "Production Launch",
-          dueDate: "Jan 30, 2026",
-          status: "pending",
-        },
-      ],
-      latestUpdate: {
-        note: "Security audit is in progress. Payment gateway integration has been tested successfully. On track for launch at end of month.",
-        timestamp: "3 hours ago",
-        author: "David Kim, Technical Lead",
-      },
-    },
-    {
-      id: 5,
-      name: "Marketing Campaign",
-      status: "Completed",
-      startDate: "Nov 1, 2025",
-      expectedCompletion: "Dec 31, 2025",
-      progress: 100,
-      milestones: [
-        {
-          id: 1,
-          name: "Campaign Strategy",
-          dueDate: "Nov 10, 2025",
-          status: "completed",
-        },
-        {
-          id: 2,
-          name: "Content Creation",
-          dueDate: "Nov 25, 2025",
-          status: "completed",
-        },
-        {
-          id: 3,
-          name: "Campaign Launch",
-          dueDate: "Dec 1, 2025",
-          status: "completed",
-        },
-        {
-          id: 4,
-          name: "Performance Monitoring",
-          dueDate: "Dec 20, 2025",
-          status: "completed",
-        },
-        {
-          id: 5,
-          name: "Final Report",
-          dueDate: "Dec 31, 2025",
-          status: "completed",
-        },
-      ],
-      latestUpdate: {
-        note: "Campaign concluded successfully. Final analytics report has been uploaded. Overall engagement exceeded targets by 23%.",
-        timestamp: "2 days ago",
-        author: "Emily Thompson, Marketing Director",
-      },
-    },
-    {
-      id: 6,
-      name: "CRM System Integration",
-      status: "In Progress",
-      startDate: "Dec 10, 2025",
-      expectedCompletion: "Mar 15, 2026",
-      progress: 30,
-      milestones: [
-        {
-          id: 1,
-          name: "Requirements Analysis",
-          dueDate: "Dec 20, 2025",
-          status: "completed",
-        },
-        {
-          id: 2,
-          name: "Data Migration Planning",
-          dueDate: "Jan 5, 2026",
-          status: "completed",
-        },
-        {
-          id: 3,
-          name: "System Configuration",
-          dueDate: "Feb 1, 2026",
-          status: "in-progress",
-        },
-        {
-          id: 4,
-          name: "Staff Training",
-          dueDate: "Feb 25, 2026",
-          status: "pending",
-        },
-        { id: 5, name: "Go Live", dueDate: "Mar 15, 2026", status: "pending" },
-      ],
-      latestUpdate: {
-        note: "Data migration planning completed. Moving into system configuration phase. Training materials are being prepared.",
-        timestamp: "6 hours ago",
-        author: "Alex Martinez, Solutions Architect",
-      },
-    },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      try {
+        const [projects, user] = await Promise.all([
+          getClientProjects(),
+          getCurrentUser(),
+        ]);
+        if (isMounted) {
+          setAllProjects(projects);
+          setUserData(user);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const parseDate = (value: string | Date | null | undefined) => {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const formatDate = (value: string | Date | null | undefined) => {
+    const date = parseDate(value ?? undefined);
+    if (!date) return "N/A";
+    return date.toLocaleDateString();
+  };
 
   // Filter projects
-  const filteredProjects = allProjects.filter((project) => {
-    const matchesSearch = project.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "All" || project.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredProjects = useMemo(() => {
+    const start = startDate ? parseDate(startDate) : null;
+    const end = endDate ? parseDate(endDate) : null;
 
-  const toggleProject = (projectId: number) => {
+    return allProjects.filter((project) => {
+      const matchesSearch = project.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === "All" || project.status === statusFilter;
+      const projectStart = parseDate(project.startDate);
+
+      const matchesStartDate = start && projectStart ? projectStart >= start : true;
+      const matchesEndDate = end && projectStart ? projectStart <= end : true;
+
+      return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate;
+    });
+  }, [allProjects, searchTerm, statusFilter, startDate, endDate]);
+
+  const toggleProject = (projectId: string) => {
     setExpandedProject(expandedProject === projectId ? null : projectId);
   };
 
@@ -370,7 +144,13 @@ export default function ClientProjectsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar currentPage="client" />
+      <AuthNavbar
+        currentPage="client"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <ClientSidebar activeItem="projects" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -517,14 +297,14 @@ export default function ClientProjectsPage() {
                           <Calendar className="w-4 h-4 text-gray-400" />
                           <span className="text-gray-600">Start:</span>
                           <span className="font-medium text-gray-800">
-                            {project.startDate}
+                            {formatDate(project.startDate)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="w-4 h-4 text-gray-400" />
                           <span className="text-gray-600">Due:</span>
                           <span className="font-medium text-gray-800">
-                            {project.expectedCompletion}
+                            {formatDate(project.expectedCompletion)}
                           </span>
                         </div>
                       </div>
@@ -622,7 +402,7 @@ export default function ClientProjectsPage() {
                                 </h5>
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                   <Calendar className="w-3 h-3" />
-                                  Due: {milestone.dueDate}
+                                  Due: {formatDate(milestone.dueDate)}
                                 </div>
                               </div>
                               <span
@@ -661,31 +441,39 @@ export default function ClientProjectsPage() {
                           className="bg-white rounded-lg border p-4 mb-4"
                           style={{ borderColor: "#e5e7eb" }}
                         >
-                          <div className="flex items-start gap-3 mb-3">
-                            <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-medium"
-                              style={{ backgroundColor: "#4169e1" }}
-                            >
-                              {project.latestUpdate.author
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </div>
-                            <div className="flex-1">
-                              <p
-                                className="text-sm font-medium mb-1"
-                                style={{ color: "#001f54" }}
-                              >
-                                {project.latestUpdate.author}
+                          {project.latestUpdate ? (
+                            <>
+                              <div className="flex items-start gap-3 mb-3">
+                                <div
+                                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-medium"
+                                  style={{ backgroundColor: "#4169e1" }}
+                                >
+                                  {project.latestUpdate.author
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </div>
+                                <div className="flex-1">
+                                  <p
+                                    className="text-sm font-medium mb-1"
+                                    style={{ color: "#001f54" }}
+                                  >
+                                    {project.latestUpdate.author}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatDate(project.latestUpdate.timestamp)}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className="text-sm text-gray-700 leading-relaxed">
+                                {project.latestUpdate.note}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {project.latestUpdate.timestamp}
-                              </p>
-                            </div>
-                          </div>
-                          <p className="text-sm text-gray-700 leading-relaxed">
-                            {project.latestUpdate.note}
-                          </p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-600">
+                              No updates yet.
+                            </p>
+                          )}
                         </div>
 
                         {/* Progress Indicator (Read-only) */}

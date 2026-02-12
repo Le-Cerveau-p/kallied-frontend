@@ -15,6 +15,7 @@ import {
   Tag,
   Calendar,
 } from "lucide-react";
+import Toast from "../../components/Toast";
 
 interface Resource {
   id: number;
@@ -37,6 +38,7 @@ interface Resource {
 export default function StaffResourcesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Mock resources data
   const resources: Resource[] = [
@@ -242,11 +244,18 @@ export default function StaffResourcesPage() {
 
   const handleDownload = (resource: Resource) => {
     // In a real application, this would trigger an actual download
-    alert(`Downloading: ${resource.title}`);
+    setToastMessage(`Downloading: ${resource.title}`);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone="info"
+          onClose={() => setToastMessage(null)}
+        />
+      )}
       <AuthNavbar />
       <StaffSidebar activeItem="resources" />
 

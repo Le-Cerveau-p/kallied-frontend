@@ -20,6 +20,10 @@ interface UserData {
   email: string;
   role: string;
   createdAt: string;
+  companyName?: string | null;
+  department?: string | null;
+  address?: string | null;
+  phone?: string | null;
 }
 
 export default function ProfilePage() {
@@ -204,8 +208,7 @@ export default function ProfilePage() {
                       </p>
                     </div>
 
-                    {/* Phone */}
-                    {/* <div>
+                    <div>
                       <label
                         htmlFor="phone"
                         className="block mb-2 font-semibold text-sm"
@@ -215,9 +218,56 @@ export default function ProfilePage() {
                       </label>
                       <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg text-gray-700">
                         <Phone size={20} className="text-gray-400" />
-                        {userData.phone}
+                        {userData?.phone || "N/A"}
                       </div>
-                    </div> */}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 border-t border-gray-200">
+                  <h3
+                    className="text-xl font-semibold mb-4"
+                    style={{ color: "#001f54" }}
+                  >
+                    Company Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label
+                        className="block mb-2 font-semibold text-sm"
+                        style={{ color: "#001f54" }}
+                      >
+                        Company Name
+                      </label>
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg text-gray-700">
+                        <Briefcase size={20} className="text-gray-400" />
+                        {userData?.companyName || "N/A"}
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        className="block mb-2 font-semibold text-sm"
+                        style={{ color: "#001f54" }}
+                      >
+                        Department
+                      </label>
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg text-gray-700">
+                        <User size={20} className="text-gray-400" />
+                        {userData?.department || "N/A"}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label
+                        className="block mb-2 font-semibold text-sm"
+                        style={{ color: "#001f54" }}
+                      >
+                        Address
+                      </label>
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg text-gray-700">
+                        <MapPin size={20} className="text-gray-400" />
+                        {userData?.address || "N/A"}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

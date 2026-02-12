@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import { MessageDisplay } from "../../components/MessageDisplay";
 import {
   Search,
   Send,
   Paperclip,
   Image as ImageIcon,
-  FileText,
-  Download,
   Check,
   CheckCheck,
   Users,
@@ -17,28 +16,35 @@ import {
   UserPlus,
   LogOut,
 } from "lucide-react";
+import {
+  adminJoinChatThread,
+  adminLeaveChatThread,
+  getChatThreads,
+  getThreadMessages,
+  markChatThreadRead,
+  sendThreadMessage,
+} from "../../api/chat";
+import { getCurrentUser } from "../../api/users";
+import { getChatSocket } from "../../utils/chatSocket";
 
 interface Message {
-  id: number;
+  id: string;
   sender: string;
   senderRole: "admin" | "staff" | "client";
   content: string;
   timestamp: string;
   isRead: boolean;
-  attachments?: Attachment[];
-}
-
-interface Attachment {
-  id: number;
-  name: string;
-  type: "image" | "file";
-  url: string;
-  size: string;
+  attachment?: {
+    name: string;
+    type: string;
+    url: string;
+    size?: string;
+  };
 }
 
 interface Chat {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   projectName: string;
   type: "main" | "staff";
   unreadCount: number;
@@ -49,210 +55,313 @@ interface Chat {
 }
 
 export default function AdminMessagesPage() {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const socketRef = useRef<ReturnType<typeof getChatSocket> | null>(null);
+  const [userData, setUserData] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    createdAt: string;
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Mock chat data
-  const [chats, setChats] = useState<Chat[]>([
-    {
-      id: 1,
-      projectId: 1,
-      projectName: "E-Commerce Platform Redesign",
-      type: "main",
-      unreadCount: 3,
-      lastMessage: "The homepage mockups are ready for review",
-      lastMessageTime: "10:30 AM",
-      participants: ["Sarah Johnson", "Mike Chen", "Client - TechCorp"],
-      adminJoined: false,
-    },
-    {
-      id: 2,
-      projectId: 1,
-      projectName: "E-Commerce Platform Redesign",
-      type: "staff",
-      unreadCount: 0,
-      lastMessage: "We need to discuss the API integration approach",
-      lastMessageTime: "9:45 AM",
-      participants: ["Sarah Johnson", "Mike Chen"],
-      adminJoined: true,
-    },
-    {
-      id: 3,
-      projectId: 2,
-      projectName: "Mobile App Development",
-      type: "main",
-      unreadCount: 5,
-      lastMessage: "Can we schedule a call to discuss the requirements?",
-      lastMessageTime: "Yesterday",
-      participants: ["Client - StartupXYZ"],
-      adminJoined: false,
-    },
-    {
-      id: 4,
-      projectId: 2,
-      projectName: "Mobile App Development",
-      type: "staff",
-      unreadCount: 1,
-      lastMessage: "Project is pending approval",
-      lastMessageTime: "Yesterday",
-      participants: [],
-      adminJoined: true,
-    },
-    {
-      id: 5,
-      projectId: 3,
-      projectName: "Cloud Migration Project",
-      type: "main",
-      unreadCount: 0,
-      lastMessage: "Thanks for the update!",
-      lastMessageTime: "Jan 20",
-      participants: ["Emily Rodriguez", "Client - Enterprise Co."],
-      adminJoined: true,
-    },
-    {
-      id: 6,
-      projectId: 3,
-      projectName: "Cloud Migration Project",
-      type: "staff",
-      unreadCount: 2,
-      lastMessage: "Security review completed",
-      lastMessageTime: "Jan 21",
-      participants: ["Emily Rodriguez", "David Kim"],
-      adminJoined: true,
-    },
-  ]);
+  useEffect(() => {
+    let isMounted = true;
+    const loadThreads = async () => {
+      try {
+        const user = await getCurrentUser();
+        const threads = await getChatThreads();
+        if (!isMounted) return;
 
-  // Mock messages for selected chat
-  const [messages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: "Sarah Johnson",
-      senderRole: "staff",
-      content:
-        "Good morning! I wanted to share the latest progress on the homepage redesign.",
-      timestamp: "9:00 AM",
-      isRead: true,
-    },
-    {
-      id: 2,
-      sender: "Mike Chen",
-      senderRole: "staff",
-      content:
-        "The backend API for the product catalog is almost ready. Should be done by EOD.",
-      timestamp: "9:15 AM",
-      isRead: true,
-    },
-    {
-      id: 3,
-      sender: "Client - TechCorp",
-      senderRole: "client",
-      content: "That sounds great! Can I see a preview of the homepage?",
-      timestamp: "9:30 AM",
-      isRead: true,
-    },
-    {
-      id: 4,
-      sender: "Sarah Johnson",
-      senderRole: "staff",
-      content: "Absolutely! Here are the mockups.",
-      timestamp: "10:00 AM",
-      isRead: true,
-      attachments: [
-        {
-          id: 1,
-          name: "homepage-mockup-v2.png",
-          type: "image",
-          url: "#",
-          size: "2.4 MB",
-        },
-      ],
-    },
-    {
-      id: 5,
-      sender: "Sarah Johnson",
-      senderRole: "staff",
-      content: "The homepage mockups are ready for review",
-      timestamp: "10:30 AM",
-      isRead: false,
-    },
-  ]);
+        const mapped: Chat[] = threads.map((thread: any) => ({
+          id: thread.id,
+          projectId: thread.projectId,
+          projectName: thread.projectName,
+          type: thread.type === "STAFF_ONLY" ? "staff" : "main",
+          unreadCount: thread.unreadCount ?? 0,
+          lastMessage: thread.lastMessage ?? "No messages yet",
+          lastMessageTime: thread.lastMessageAt
+            ? new Date(thread.lastMessageAt).toLocaleString()
+            : "-",
+          participants: (thread.participants ?? []).map((p: any) => p.name),
+          adminJoined: !!thread.adminJoined,
+        }));
 
-  const filteredChats = chats.filter((chat) =>
-    chat.projectName.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-
-  // Group chats by project
-  const chatsByProject = filteredChats.reduce(
-    (acc, chat) => {
-      if (!acc[chat.projectId]) {
-        acc[chat.projectId] = {
-          projectName: chat.projectName,
-          chats: [],
-        };
+        setChats(mapped);
+        setUserData(user ?? null);
+        setUserId(user?.id ?? null);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      acc[chat.projectId].chats.push(chat);
-      return acc;
-    },
-    {} as Record<number, { projectName: string; chats: Chat[] }>,
+    };
+
+    loadThreads();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const refreshThreads = useCallback(async () => {
+    try {
+      const threads = await getChatThreads();
+      const mapped: Chat[] = threads.map((thread: any) => ({
+        id: thread.id,
+        projectId: thread.projectId,
+        projectName: thread.projectName,
+        type: thread.type === "STAFF_ONLY" ? "staff" : "main",
+        unreadCount: thread.unreadCount ?? 0,
+        lastMessage: thread.lastMessage ?? "No messages yet",
+        lastMessageTime: thread.lastMessageAt
+          ? new Date(thread.lastMessageAt).toLocaleString()
+          : "-",
+        participants: (thread.participants ?? []).map((p: any) => p.name),
+        adminJoined: !!thread.adminJoined,
+      }));
+      setChats(mapped);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const socket = getChatSocket();
+    socketRef.current = socket;
+
+    const handleNewMessage = (message: any) => {
+      const messageThreadId = message.threadId;
+      const senderId = message.sender?.id ?? "";
+      const isActiveThread = selectedChat?.id === messageThreadId;
+      const mappedMessage: Message = {
+        id: message.id,
+        sender: message.sender?.name ?? "Unknown",
+        senderRole:
+          (message.sender?.role ?? "STAFF").toLowerCase() as Message["senderRole"],
+        content: message.content ?? "",
+        timestamp: new Date(message.createdAt).toLocaleString(),
+        isRead: true,
+        attachment: mapAttachment(message.attachments),
+      };
+
+      setChats((prev) =>
+        prev.map((chat) => {
+          if (chat.id !== messageThreadId) return chat;
+          const shouldIncrement =
+            senderId && senderId !== userId && !isActiveThread;
+          return {
+            ...chat,
+            lastMessage: mappedMessage.content || "Sent an attachment",
+            lastMessageTime: mappedMessage.timestamp,
+            unreadCount: shouldIncrement
+              ? (chat.unreadCount ?? 0) + 1
+              : chat.unreadCount ?? 0,
+          };
+        }),
+      );
+
+      setMessages((prev) => {
+        if (!isActiveThread) {
+          return prev;
+        }
+        return [...prev, mappedMessage];
+      });
+
+      if (
+        isActiveThread &&
+        senderId &&
+        senderId !== userId &&
+        selectedChat?.adminJoined
+      ) {
+        markChatThreadRead(messageThreadId).catch(console.error);
+      }
+    };
+
+    const handleThreadUpdated = () => {
+      void refreshThreads();
+    };
+
+    const handleThreadRead = (payload: any) => {
+      if (payload?.userId && payload.userId === userId) {
+        void refreshThreads();
+      }
+    };
+
+    socket.on("new-message", handleNewMessage);
+    socket.on("thread-updated", handleThreadUpdated);
+    socket.on("thread-read", handleThreadRead);
+    return () => {
+      socket.off("new-message", handleNewMessage);
+      socket.off("thread-updated", handleThreadUpdated);
+      socket.off("thread-read", handleThreadRead);
+    };
+  }, [selectedChat, userId, refreshThreads]);
+
+  const filteredChats = useMemo(
+    () =>
+      chats.filter((chat) =>
+        chat.projectName.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [chats, searchQuery],
   );
 
-  const handleSendMessage = () => {
-    if (messageInput.trim() && selectedChat) {
-      // In a real app, this would send the message to the backend
+  const chatsByProject = useMemo(
+    () =>
+      filteredChats.reduce(
+        (acc, chat) => {
+          if (!acc[chat.projectId]) {
+            acc[chat.projectId] = {
+              projectName: chat.projectName,
+              chats: [],
+            };
+          }
+          acc[chat.projectId].chats.push(chat);
+          return acc;
+        },
+        {} as Record<string, { projectName: string; chats: Chat[] }>,
+      ),
+    [filteredChats],
+  );
+
+  const mapAttachment = (attachments: any[] | undefined) => {
+    const attachmentItem = attachments?.[0];
+    if (!attachmentItem) return undefined;
+    const name = attachmentItem.fileUrl?.split("/").pop() ?? "attachment";
+    const rawUrl = attachmentItem.fileUrl ?? "";
+    const url = rawUrl.startsWith("http") ? rawUrl : `${apiBaseUrl}${rawUrl}`;
+    return {
+      name,
+      type: attachmentItem.mimeType,
+      url,
+    };
+  };
+
+  const loadMessages = async (threadId: string) => {
+    const data = await getThreadMessages(threadId);
+    const mappedMessages: Message[] = data.map((message: any) => ({
+      id: message.id,
+      sender: message.sender?.name ?? "Unknown",
+      senderRole: (message.sender?.role ?? "STAFF").toLowerCase() as Message["senderRole"],
+      content: message.content ?? "",
+      timestamp: new Date(message.createdAt).toLocaleString(),
+      isRead: true,
+      attachment: mapAttachment(message.attachments),
+    }));
+    setMessages(mappedMessages);
+  };
+
+  const handleSelectChat = async (chat: Chat) => {
+    setSelectedChat(chat);
+    setChats((prev) =>
+      prev.map((item) =>
+        item.id === chat.id ? { ...item, unreadCount: 0 } : item,
+      ),
+    );
+    socketRef.current?.emit("join-thread", chat.id);
+    await loadMessages(chat.id);
+    if (chat.adminJoined) {
+      await markChatThreadRead(chat.id);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedChat) return;
+    if (!messageInput.trim() && !attachment) return;
+
+    try {
+      await sendThreadMessage(selectedChat.id, {
+        content: messageInput.trim() || undefined,
+        file: attachment,
+      });
       setMessageInput("");
+      setAttachment(null);
+      await loadMessages(selectedChat.id);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const handleJoinChat = () => {
-    if (selectedChat) {
-      setChats(
-        chats.map((c) =>
-          c.id === selectedChat.id ? { ...c, adminJoined: true } : c,
-        ),
-      );
-      setSelectedChat({ ...selectedChat, adminJoined: true });
-      setShowJoinDialog(false);
-    }
+  const handleJoinChat = async () => {
+    if (!selectedChat) return;
+    await adminJoinChatThread(selectedChat.id);
+    const updated = chats.map((c) =>
+      c.id === selectedChat.id ? { ...c, adminJoined: true } : c,
+    );
+    setChats(updated);
+    setSelectedChat({ ...selectedChat, adminJoined: true });
+    setShowJoinDialog(false);
+    await loadMessages(selectedChat.id);
+    await markChatThreadRead(selectedChat.id);
   };
 
-  const handleLeaveChat = () => {
-    if (selectedChat) {
-      setChats(
-        chats.map((c) =>
-          c.id === selectedChat.id ? { ...c, adminJoined: false } : c,
-        ),
-      );
-      setSelectedChat({ ...selectedChat, adminJoined: false });
-      setShowLeaveDialog(false);
-    }
+  const handleLeaveChat = async () => {
+    if (!selectedChat) return;
+    await adminLeaveChatThread(selectedChat.id);
+    const updated = chats.map((c) =>
+      c.id === selectedChat.id ? { ...c, adminJoined: false } : c,
+    );
+    setChats(updated);
+    setSelectedChat({ ...selectedChat, adminJoined: false });
+    setShowLeaveDialog(false);
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return { bg: "#fce4ec", text: "#d4183d" };
-      case "staff":
-        return { bg: "#e3f2fd", text: "#4169e1" };
-      case "client":
-        return { bg: "#f1f8e9", text: "#558b2f" };
-      default:
-        return { bg: "#f5f5f5", text: "#717182" };
-    }
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setAttachment(file);
   };
 
   const totalUnread = chats.reduce((sum, chat) => sum + chat.unreadCount, 0);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <AuthNavbar
+          currentPage=""
+          userName={userData?.name}
+          userEmail={userData?.email}
+          userAvatar=""
+          notificationCount={3}
+        />
+        <AdminSidebar activeItem="messages" />
+        <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl" style={{ color: "#001f54" }}>
+              Loading messages...
+            </h1>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      <AuthNavbar
+        currentPage=""
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <AdminSidebar activeItem="messages" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
         <div className="max-w-7xl mx-auto">
-          {/* Page Heading */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
@@ -274,12 +383,9 @@ export default function AdminMessagesPage() {
             </div>
           </div>
 
-          {/* Messages Layout */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden h-[calc(100vh-16rem)]">
             <div className="flex h-full">
-              {/* Left Sidebar - Chat List */}
               <div className="w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col">
-                {/* Search */}
                 <div className="p-4 border-b border-gray-200">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -293,7 +399,6 @@ export default function AdminMessagesPage() {
                   </div>
                 </div>
 
-                {/* Chat List */}
                 <div className="flex-1 overflow-y-auto">
                   {Object.values(chatsByProject).map((project) => (
                     <div
@@ -311,7 +416,7 @@ export default function AdminMessagesPage() {
                       {project.chats.map((chat) => (
                         <button
                           key={chat.id}
-                          onClick={() => setSelectedChat(chat)}
+                          onClick={() => handleSelectChat(chat)}
                           className={`w-full p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 ${
                             selectedChat?.id === chat.id ? "bg-blue-50" : ""
                           }`}
@@ -392,10 +497,8 @@ export default function AdminMessagesPage() {
                 </div>
               </div>
 
-              {/* Right Side - Chat View */}
               {selectedChat ? (
                 <div className="flex-1 flex flex-col">
-                  {/* Chat Header */}
                   <div
                     className="p-4 border-b border-gray-200"
                     style={{ backgroundColor: "#001f54" }}
@@ -448,7 +551,6 @@ export default function AdminMessagesPage() {
                     </div>
                   </div>
 
-                  {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {!selectedChat.adminJoined && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
@@ -474,8 +576,6 @@ export default function AdminMessagesPage() {
                     {selectedChat.adminJoined &&
                       messages.map((message) => {
                         const isCurrentUser = message.senderRole === "admin";
-                        const roleColor = getRoleBadgeColor(message.senderRole);
-
                         return (
                           <div
                             key={message.id}
@@ -486,54 +586,24 @@ export default function AdminMessagesPage() {
                             >
                               <div className="flex items-center gap-2 mb-1">
                                 {!isCurrentUser && (
-                                  <>
-                                    <div
-                                      className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
-                                      style={{
-                                        backgroundColor: roleColor.text,
-                                      }}
-                                    >
-                                      {message.sender
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")}
-                                    </div>
-                                    <span
-                                      className="text-sm font-medium"
-                                      style={{ color: "#001f54" }}
-                                    >
-                                      {message.sender}
-                                    </span>
-                                    <span
-                                      className="text-xs px-2 py-0.5 rounded-full"
-                                      style={{
-                                        backgroundColor: roleColor.bg,
-                                        color: roleColor.text,
-                                      }}
-                                    >
-                                      {message.senderRole}
-                                    </span>
-                                  </>
+                                  <span
+                                    className="text-sm font-medium"
+                                    style={{ color: "#001f54" }}
+                                  >
+                                    {message.sender}
+                                  </span>
                                 )}
                                 {isCurrentUser && (
-                                  <>
-                                    <span
-                                      className="text-xs px-2 py-0.5 rounded-full"
-                                      style={{
-                                        backgroundColor: roleColor.bg,
-                                        color: roleColor.text,
-                                      }}
-                                    >
-                                      Admin
-                                    </span>
-                                    <span
-                                      className="text-sm font-medium"
-                                      style={{ color: "#001f54" }}
-                                    >
-                                      You
-                                    </span>
-                                  </>
+                                  <span
+                                    className="text-sm font-medium"
+                                    style={{ color: "#001f54" }}
+                                  >
+                                    You
+                                  </span>
                                 )}
+                                <span className="text-xs text-gray-500">
+                                  {message.timestamp}
+                                </span>
                               </div>
                               <div
                                 className={`inline-block p-3 rounded-lg ${
@@ -542,42 +612,13 @@ export default function AdminMessagesPage() {
                                     : "bg-gray-100"
                                 }`}
                               >
-                                <p className="text-sm">{message.content}</p>
-                                {message.attachments &&
-                                  message.attachments.length > 0 && (
-                                    <div className="mt-3 space-y-2">
-                                      {message.attachments.map((attachment) => (
-                                        <div
-                                          key={attachment.id}
-                                          className={`p-2 rounded-lg flex items-center gap-2 ${
-                                            isCurrentUser
-                                              ? "bg-blue-600 bg-opacity-50"
-                                              : "bg-white border border-gray-200"
-                                          }`}
-                                        >
-                                          {attachment.type === "image" ? (
-                                            <ImageIcon className="w-4 h-4" />
-                                          ) : (
-                                            <FileText className="w-4 h-4" />
-                                          )}
-                                          <div className="flex-1 min-w-0">
-                                            <p className="text-xs truncate">
-                                              {attachment.name}
-                                            </p>
-                                            <p className="text-xs opacity-70">
-                                              {attachment.size}
-                                            </p>
-                                          </div>
-                                          <button className="p-1 hover:bg-black hover:bg-opacity-10 rounded">
-                                            <Download className="w-4 h-4" />
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
+                                <MessageDisplay
+                                  content={message.content}
+                                  attachment={message.attachment}
+                                  isOwnMessage={isCurrentUser}
+                                />
                               </div>
                               <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
-                                <span>{message.timestamp}</span>
                                 {isCurrentUser && (
                                   <>
                                     {message.isRead ? (
@@ -595,43 +636,36 @@ export default function AdminMessagesPage() {
                           </div>
                         );
                       })}
-
-                    {selectedChat.adminJoined &&
-                      selectedChat.type === "main" && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-                          <UserPlus
-                            className="w-4 h-4 mt-0.5"
-                            style={{ color: "#4169e1" }}
-                          />
-                          <p className="text-xs text-gray-600">
-                            <span
-                              className="font-medium"
-                              style={{ color: "#001f54" }}
-                            >
-                              Admin
-                            </span>{" "}
-                            joined the chat
-                          </p>
-                        </div>
-                      )}
                   </div>
 
-                  {/* Message Input */}
                   {selectedChat.adminJoined && (
                     <div className="p-4 border-t border-gray-200">
                       <div className="flex items-end gap-2">
                         <button
+                          onClick={handleAttachClick}
                           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                           style={{ color: "#717182" }}
                         >
                           <Paperclip className="w-5 h-5" />
                         </button>
                         <button
+                          onClick={handleAttachClick}
                           className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                           style={{ color: "#717182" }}
                         >
                           <ImageIcon className="w-5 h-5" />
                         </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                        {attachment && (
+                          <div className="text-xs text-gray-600">
+                            Attached: {attachment.name}
+                          </div>
+                        )}
                         <div className="flex-1">
                           <textarea
                             value={messageInput}
@@ -649,7 +683,7 @@ export default function AdminMessagesPage() {
                         </div>
                         <button
                           onClick={handleSendMessage}
-                          disabled={!messageInput.trim()}
+                          disabled={!messageInput.trim() && !attachment}
                           className="p-3 rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                           style={{ backgroundColor: "#4169e1" }}
                         >
@@ -678,7 +712,6 @@ export default function AdminMessagesPage() {
         </div>
       </main>
 
-      {/* Join Chat Dialog */}
       {showJoinDialog && selectedChat && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
@@ -728,7 +761,6 @@ export default function AdminMessagesPage() {
         </div>
       )}
 
-      {/* Leave Chat Dialog */}
       {showLeaveDialog && selectedChat && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-scale-in">

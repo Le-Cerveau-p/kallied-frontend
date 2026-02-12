@@ -43,18 +43,18 @@ export default function ClientSidebar({
       icon: FileText,
       href: "/client/reports",
     },
-    {
-      id: "dashboards",
-      label: "Dashboards",
-      icon: ChartBar,
-      href: "/client/dashboards",
-    },
-    {
-      id: "requests",
-      label: "Requests",
-      icon: MessageCircle,
-      href: "/client/requests",
-    },
+    // {
+    //   id: "dashboards",
+    //   label: "Dashboards",
+    //   icon: ChartBar,
+    //   href: "/client/dashboards",
+    // },
+    // {
+    //   id: "requests",
+    //   label: "Requests",
+    //   icon: MessageCircle,
+    //   href: "/client/requests",
+    // },
     {
       id: "invoices",
       label: "Invoices",
@@ -67,7 +67,6 @@ export default function ClientSidebar({
       icon: MessageCircle,
       href: "/threads",
     },
-    { id: "profile", label: "Profile", icon: User, href: "/profile" },
   ];
 
   const handleItemClick = (href: string) => {

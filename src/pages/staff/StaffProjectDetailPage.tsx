@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import StaffSidebar from "../../components/StaffSidebar";
 import {
@@ -30,65 +30,122 @@ import {
   Lightbulb,
   RefreshCw,
 } from "lucide-react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { getStaffProjectById, uploadProjectDocument } from "../../api/staff";
+import {
+  addProcurementItem,
+  createProcurement,
+  deleteProcurementItem,
+  submitProcurement,
+  updateProcurement,
+  updateProcurementItem,
+} from "../../api/procurement";
+import {
+  getProjectThreads,
+  getThreadMessages,
+  markChatThreadRead,
+  sendThreadMessage,
+} from "../../api/chat";
+import { getChatSocket } from "../../utils/chatSocket";
+import { getCurrentUser } from "../../api/users";
+import { MessageDisplay } from "../../components/MessageDisplay";
+
+interface UserSummary {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  clientName: string;
+  clientInfo: UserSummary;
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "AWAITING_APPROVAL";
+  progress: number;
+  assignedStaff: StaffMember[];
+  createdDate: string;
+  deadline: string;
+  updates: Update[];
+  latestUpdate: string;
+  documents: Document[];
+  procurementRequests: ProcurementRequest[];
+}
 
 interface StaffMember {
-  id: number;
-  name: string;
-  role: string;
-  email: string;
+  staff: UserSummary;
 }
 
 interface Update {
   id: number;
-  date: string;
-  author: string;
+  createdAt: string;
+  staff: UserSummary;
   progress: number;
   notes: string;
+  eventType: string;
 }
 
 interface Document {
-  id: number;
+  id: string;
   name: string;
   category: string;
-  version: string;
+  version: number;
   uploadedBy: string;
   uploadedDate: string;
-  size: string;
+  fileUrl: string;
 }
 
+type ProcurementStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+type ProcurementItemType = "MATERIAL" | "SERVICE";
+
 interface ProcurementItem {
-  id: number;
+  id: string;
   name: string;
   quantity: number;
-  estimatedCost: number;
+  unit: string;
+  estimatedCost?: number;
+  type: ProcurementItemType;
 }
 
 interface ProcurementRequest {
-  id: number;
+  id: string;
   title: string;
-  description: string;
-  status: "Draft" | "Submitted" | "Approved" | "Rejected";
-  totalCost: number;
-  createdDate: string;
+  description: string | null;
+  status: ProcurementStatus;
+  cost?: number | null;
+  createdAt: string;
   items: ProcurementItem[];
+  rejectionReason?: string | null;
+}
+
+interface ProcurementItemForm {
+  id?: string;
+  tempId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  estimatedCost?: number;
+  type: ProcurementItemType;
 }
 
 interface Message {
-  id: number;
+  id: string;
+  senderId: string;
   sender: string;
   role: "client" | "staff" | "admin";
   content: string;
   timestamp: string;
-  attachments?: { name: string; type: string }[];
+  attachments?: { name: string; type: string; url: string; size?: string }[];
 }
 
 interface Thread {
-  id: number;
+  id: string;
   name: string;
   type: "main" | "staff";
   lastMessage: string;
   unreadCount: number;
-  messages: Message[];
 }
 
 interface CustomerRequest {
@@ -105,22 +162,45 @@ interface CustomerRequest {
 }
 
 export default function StaffProjectDetailPage() {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const [userData, setUserData] = useState<UserSummary | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+    setLoading(false);
+  }, []);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<
-    | "overview"
-    | "milestones"
-    | "documents"
-    | "procurement"
-    | "messages"
-    | "requests"
+    "overview" | "milestones" | "documents" | "procurement" | "messages"
+    // | "requests"
   >("overview");
   const [showAddUpdateModal, setShowAddUpdateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateProcurementModal, setShowCreateProcurementModal] =
     useState(false);
+  const [editingProcurement, setEditingProcurement] =
+    useState<ProcurementRequest | null>(null);
   const [selectedProcurement, setSelectedProcurement] =
     useState<ProcurementRequest | null>(null);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [threadMessages, setThreadMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [messageAttachment, setMessageAttachment] = useState<File | null>(null);
+  const messageFileRef = useRef<HTMLInputElement>(null);
+  const socketRef = useRef<ReturnType<typeof getChatSocket> | null>(null);
 
   // New update form state
   const [newUpdateProgress, setNewUpdateProgress] = useState(75);
@@ -128,246 +208,191 @@ export default function StaffProjectDetailPage() {
 
   // Upload form state
   const [uploadFileName, setUploadFileName] = useState("");
-  const [uploadCategory, setUploadCategory] = useState("Reports");
+  const [uploadCategory, setUploadCategory] = useState("REPORT");
   const [uploadGroup, setUploadGroup] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const uploadFileRef = useRef<HTMLInputElement>(null);
 
   // Procurement form state
   const [procurementTitle, setProcurementTitle] = useState("");
   const [procurementDescription, setProcurementDescription] = useState("");
-  const [procurementItems, setProcurementItems] = useState<ProcurementItem[]>(
-    [],
-  );
+  const [procurementItems, setProcurementItems] = useState<
+    ProcurementItemForm[]
+  >([]);
+  const [isSavingProcurement, setIsSavingProcurement] = useState(false);
+  const [procurementError, setProcurementError] = useState<string | null>(null);
+  const [updates, setUpdates] = useState<Update[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock project data
-  const project = {
-    id: 1,
-    name: "Website Redesign",
-    clientName: "Acme Corporation",
-    status: "In Progress",
-    startDate: "Dec 15, 2025",
-    completionDate: "Jan 31, 2026",
-    progress: 75,
-    description:
-      "Complete redesign of the corporate website including homepage, product pages, and user dashboard. Focus on modern UI/UX, mobile responsiveness, and improved performance.",
-    assignedStaff: [
-      {
-        id: 1,
-        name: "Sarah Chen",
-        role: "Lead Designer",
-        email: "sarah.chen@company.com",
-      },
-      {
-        id: 2,
-        name: "Mike Johnson",
-        role: "Frontend Developer",
-        email: "mike.johnson@company.com",
-      },
-      {
-        id: 3,
-        name: "Emily Davis",
-        role: "Project Manager",
-        email: "emily.davis@company.com",
-      },
-    ],
-    clientInfo: {
-      company: "Acme Corporation",
-      contactName: "John Smith",
-      email: "john.smith@acme.com",
-      phone: "(555) 123-4567",
-    },
-    latestUpdate:
-      "Completed mobile responsive design. Moving to development phase. Homepage components are 90% complete.",
-  };
+  const loadProject = useCallback(async () => {
+    if (!id) return;
+    const data = await getStaffProjectById(id);
+    setProject(data);
+    setUpdates(data.updates);
+    console.log("projec", data);
+    console.log("projec", data.procurementRequests);
+  }, [id]);
 
-  // Mock updates data
-  const updates: Update[] = [
-    {
-      id: 1,
-      date: "Jan 20, 2026",
-      author: "Sarah Chen",
-      progress: 75,
-      notes:
-        "Completed mobile responsive design. Moving to development phase. Homepage components are 90% complete.",
-    },
-    {
-      id: 2,
-      date: "Jan 15, 2026",
-      author: "Mike Johnson",
-      progress: 60,
-      notes:
-        "Implemented navigation component and hero section. Started work on product card layouts.",
-    },
-    {
-      id: 3,
-      date: "Jan 10, 2026",
-      author: "Emily Davis",
-      progress: 45,
-      notes:
-        "Completed design review with client. All mockups approved. Development can proceed.",
-    },
-    {
-      id: 4,
-      date: "Jan 5, 2026",
-      author: "Sarah Chen",
-      progress: 30,
-      notes:
-        "Finalized color palette and typography system. Created component library in Figma.",
-    },
-  ];
+  useEffect(() => {
+    void loadProject();
+  }, [loadProject]);
 
-  // Mock documents data
-  const documents: Document[] = [
-    {
-      id: 1,
-      name: "Project Requirements",
-      category: "Reports",
-      version: "v2.1",
-      uploadedBy: "Emily Davis",
-      uploadedDate: "Dec 20, 2025",
-      size: "2.4 MB",
-    },
-    {
-      id: 2,
-      name: "Design Mockups",
-      category: "Reports",
-      version: "v3.0",
-      uploadedBy: "Sarah Chen",
-      uploadedDate: "Jan 15, 2026",
-      size: "15.8 MB",
-    },
-    {
-      id: 3,
-      name: "User Research Data",
-      category: "Datasets",
-      version: "v1.0",
-      uploadedBy: "Emily Davis",
-      uploadedDate: "Dec 18, 2025",
-      size: "5.2 MB",
-    },
-    {
-      id: 4,
-      name: "Technical Specifications",
-      category: "Reports",
-      version: "v1.2",
-      uploadedBy: "Mike Johnson",
-      uploadedDate: "Jan 8, 2026",
-      size: "1.8 MB",
-    },
-    {
-      id: 5,
-      name: "Analytics Dashboard Export",
-      category: "Datasets",
-      version: "v1.0",
-      uploadedBy: "Sarah Chen",
-      uploadedDate: "Jan 12, 2026",
-      size: "8.5 MB",
-    },
-  ];
+  useEffect(() => {
+    if (!project || !selectedProcurement) return;
+    const match = project.procurementRequests.find(
+      (request) => request.id === selectedProcurement.id,
+    );
+    if (!match) {
+      setSelectedProcurement(null);
+      return;
+    }
+    if (match !== selectedProcurement) {
+      setSelectedProcurement(match);
+    }
+  }, [project, selectedProcurement]);
 
-  // Mock procurement data
-  const procurementRequests: ProcurementRequest[] = [
-    {
-      id: 1,
-      title: "Adobe Creative Cloud Licenses",
-      description: "Need 3 additional Creative Cloud licenses for design team",
-      status: "Approved",
-      totalCost: 1800,
-      createdDate: "Jan 5, 2026",
-      items: [
-        {
-          id: 1,
-          name: "Adobe CC All Apps License",
-          quantity: 3,
-          estimatedCost: 600,
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "Stock Photography Package",
-      description: "High-resolution images for website hero sections",
-      status: "Submitted",
-      totalCost: 500,
-      createdDate: "Jan 12, 2026",
-      items: [
-        {
-          id: 1,
-          name: "Shutterstock Premium Package",
-          quantity: 1,
-          estimatedCost: 500,
-        },
-      ],
-    },
-  ];
+  useEffect(() => {
+    if (!id) return;
+    const loadThreads = async () => {
+      try {
+        const data = await getProjectThreads(id);
+        const mapped: Thread[] = data.map((thread: any) => ({
+          id: thread.id,
+          name:
+            thread.type === "STAFF_ONLY" ? "Staff-Only Thread" : "Main Thread",
+          type: thread.type === "STAFF_ONLY" ? "staff" : "main",
+          lastMessage: thread.lastMessage ?? "No messages yet",
+          unreadCount: thread.unreadCount ?? 0,
+        }));
+        setThreads(mapped);
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-  // Mock threads data
-  const threads: Thread[] = [
-    {
-      id: 1,
-      name: "Main Thread",
-      type: "main",
-      lastMessage: "The latest designs look great! When can we...",
-      unreadCount: 2,
-      messages: [
-        {
-          id: 1,
-          sender: "John Smith",
-          role: "client",
-          content:
-            "Hi team, thanks for the update. Can you share the timeline for the next phase?",
-          timestamp: "Jan 20, 2026 at 9:30 AM",
-        },
-        {
-          id: 2,
-          sender: "Emily Davis",
-          role: "staff",
-          content:
-            "Absolutely! We're planning to complete development by Jan 25, then move to testing. I'll send you a detailed timeline today.",
-          timestamp: "Jan 20, 2026 at 10:15 AM",
-        },
-        {
-          id: 3,
-          sender: "John Smith",
-          role: "client",
-          content:
-            "The latest designs look great! When can we expect the staging environment?",
-          timestamp: "Jan 21, 2026 at 2:45 PM",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Staff-Only Thread",
-      type: "staff",
-      lastMessage: "Can someone review the mobile navigation...",
-      unreadCount: 0,
-      messages: [
-        {
-          id: 1,
-          sender: "Sarah Chen",
-          role: "staff",
-          content:
-            "The client approved all mockups. We can proceed with development.",
-          timestamp: "Jan 15, 2026 at 11:00 AM",
-        },
-        {
-          id: 2,
-          sender: "Mike Johnson",
-          role: "staff",
-          content: "Great! I'll start with the homepage components today.",
-          timestamp: "Jan 15, 2026 at 11:30 AM",
-        },
-        {
-          id: 3,
-          sender: "Mike Johnson",
-          role: "staff",
-          content:
-            "Can someone review the mobile navigation code? I want to make sure it's accessible.",
-          timestamp: "Jan 18, 2026 at 3:20 PM",
-        },
-      ],
-    },
-  ];
+    loadThreads();
+  }, [id]);
+
+  const refreshThreads = useCallback(async () => {
+    if (!id) return;
+    try {
+      const data = await getProjectThreads(id);
+      const mapped: Thread[] = data.map((thread: any) => ({
+        id: thread.id,
+        name:
+          thread.type === "STAFF_ONLY" ? "Staff-Only Thread" : "Main Thread",
+        type: thread.type === "STAFF_ONLY" ? "staff" : "main",
+        lastMessage: thread.lastMessage ?? "No messages yet",
+        unreadCount: thread.unreadCount ?? 0,
+      }));
+      setThreads(mapped);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    const socket = getChatSocket();
+    socketRef.current = socket;
+
+    const handleNewMessage = (message: any) => {
+      const messageThreadId = message.threadId;
+      const senderId = message.sender?.id ?? "";
+      const isActiveThread = selectedThread?.id === messageThreadId;
+      const mappedMessage: Message = {
+        id: message.id,
+        senderId,
+        sender: message.sender?.name ?? "Unknown",
+        role: (
+          message.sender?.role ?? "STAFF"
+        ).toLowerCase() as Message["role"],
+        content: message.content ?? "",
+        timestamp: new Date(message.createdAt).toLocaleString(),
+        attachments: mapAttachment(message.attachments)
+          ? [mapAttachment(message.attachments)!]
+          : undefined,
+      };
+
+      setThreads((prev) =>
+        prev.map((thread) => {
+          if (thread.id !== messageThreadId) return thread;
+          const shouldIncrement =
+            senderId && senderId !== userData?.id && !isActiveThread;
+          return {
+            ...thread,
+            lastMessage: mappedMessage.content || "Sent an attachment",
+            unreadCount: shouldIncrement
+              ? (thread.unreadCount ?? 0) + 1
+              : (thread.unreadCount ?? 0),
+          };
+        }),
+      );
+
+      setThreadMessages((prev) => {
+        if (!isActiveThread) {
+          return prev;
+        }
+        return [...prev, mappedMessage];
+      });
+
+      if (isActiveThread && senderId && senderId !== userData?.id) {
+        markChatThreadRead(messageThreadId).catch(console.error);
+      }
+    };
+
+    const handleThreadUpdated = () => {
+      void refreshThreads();
+    };
+
+    const handleThreadRead = (payload: any) => {
+      if (payload?.userId && payload.userId === userData?.id) {
+        void refreshThreads();
+      }
+    };
+
+    socket.on("new-message", handleNewMessage);
+    socket.on("thread-updated", handleThreadUpdated);
+    socket.on("thread-read", handleThreadRead);
+    return () => {
+      socket.off("new-message", handleNewMessage);
+      socket.off("thread-updated", handleThreadUpdated);
+      socket.off("thread-read", handleThreadRead);
+    };
+  }, [selectedThread, userData, refreshThreads]);
+
+  useEffect(() => {
+    const threadType = searchParams.get("thread");
+    if (threadType !== "main" && threadType !== "staff") return;
+
+    const match = threads.find((t) => t.type === threadType) ?? null;
+    setActiveTab("messages");
+    if (match) {
+      setSelectedThread(match);
+      socketRef.current?.emit("join-thread", match.id);
+      loadMessages(match.id);
+    }
+  }, [searchParams, threads]);
+
+  useEffect(() => {
+    const threadType = searchParams.get("thread");
+    if (threadType === "main" || threadType === "staff") return;
+
+    const tabParam = searchParams.get("tab");
+    const normalized = tabParam?.toLowerCase();
+    if (!normalized) return;
+
+    const validTabs = new Set([
+      "overview",
+      "milestones",
+      "documents",
+      "procurement",
+      "messages",
+    ]);
+    if (!validTabs.has(normalized)) return;
+
+    setActiveTab(normalized as typeof activeTab);
+  }, [searchParams]);
 
   // Mock customer requests data
   const customerRequests: CustomerRequest[] = [
@@ -472,20 +497,44 @@ export default function StaffProjectDetailPage() {
     }
   };
 
-  const getProcurementStatusStyle = (status: string) => {
+  const getProcurementStatusStyle = (status: ProcurementStatus) => {
     switch (status) {
-      case "Draft":
+      case "DRAFT":
         return { backgroundColor: "#71718220", color: "#717182" };
-      case "Submitted":
+      case "SUBMITTED":
         return { backgroundColor: "#4169e120", color: "#4169e1" };
-      case "Approved":
+      case "APPROVED":
         return { backgroundColor: "#32cd3220", color: "#32cd32" };
-      case "Rejected":
+      case "REJECTED":
         return { backgroundColor: "#dc262620", color: "#dc2626" };
       default:
         return { backgroundColor: "#71718220", color: "#717182" };
     }
   };
+
+  const getProcurementStatusLabel = (status: ProcurementStatus) => {
+    switch (status) {
+      case "DRAFT":
+        return "Draft";
+      case "SUBMITTED":
+        return "Submitted";
+      case "APPROVED":
+        return "Approved";
+      case "REJECTED":
+        return "Rejected";
+      default:
+        return status;
+    }
+  };
+
+  const getProcurementTotal = (request: ProcurementRequest) =>
+    request.items.reduce(
+      (sum, item) => sum + (item.estimatedCost ?? 0) * item.quantity,
+      0,
+    );
+
+  const formatProcurementDate = (value: string) =>
+    new Date(value).toLocaleDateString();
 
   const handleAddUpdate = () => {
     console.log("Adding update:", {
@@ -497,55 +546,264 @@ export default function StaffProjectDetailPage() {
     setShowAddUpdateModal(false);
   };
 
-  const handleUploadDocument = () => {
-    console.log("Uploading document:", {
-      fileName: uploadFileName,
-      category: uploadCategory,
-      group: uploadGroup,
-    });
-    setUploadFileName("");
-    setUploadCategory("Reports");
-    setUploadGroup("");
-    setShowUploadModal(false);
-  };
-
-  const handleCreateProcurement = () => {
-    console.log("Creating procurement:", {
-      title: procurementTitle,
-      description: procurementDescription,
-      items: procurementItems,
-    });
-    setProcurementTitle("");
-    setProcurementDescription("");
-    setProcurementItems([]);
-    setShowCreateProcurementModal(false);
-  };
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      console.log(
-        "Sending message:",
-        newMessage,
-        "to thread:",
-        selectedThread?.name,
-      );
-      setNewMessage("");
+  const handleUploadDocument = async () => {
+    if (!id || !uploadFile || !uploadFileName.trim()) return;
+    try {
+      await uploadProjectDocument(id, {
+        file: uploadFile,
+        name: uploadFileName.trim(),
+        category: uploadCategory,
+        groupName: uploadGroup.trim() || "General",
+      });
+      await loadProject();
+      setUploadFileName("");
+      setUploadCategory("REPORT");
+      setUploadGroup("");
+      setUploadFile(null);
+      setShowUploadModal(false);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  const statusStyle = getStatusStyle(project.status);
+  const handleUploadFilePick = () => {
+    uploadFileRef.current?.click();
+  };
+
+  const handleUploadFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    setUploadFile(file);
+    if (file && !uploadFileName.trim()) {
+      setUploadFileName(file.name);
+    }
+  };
+
+  const buildTempId = () =>
+    `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const resetProcurementForm = () => {
+    setProcurementTitle("");
+    setProcurementDescription("");
+    setProcurementItems([]);
+    setEditingProcurement(null);
+    setProcurementError(null);
+  };
+
+  const isProcurementFormValid = () => {
+    if (!procurementTitle.trim()) return false;
+    if (!procurementDescription.trim()) return false;
+    if (!procurementItems.length) return false;
+    return procurementItems.every(
+      (item) =>
+        item.name.trim() &&
+        item.unit.trim() &&
+        item.quantity > 0 &&
+        (item.estimatedCost ?? 0) > 0 &&
+        item.type,
+    );
+  };
+
+  const handleOpenCreateProcurement = () => {
+    resetProcurementForm();
+    setShowCreateProcurementModal(true);
+  };
+
+  const handleEditProcurement = () => {
+    if (!selectedProcurement) return;
+    setEditingProcurement(selectedProcurement);
+    setProcurementTitle(selectedProcurement.title);
+    setProcurementDescription(selectedProcurement.description ?? "");
+    setProcurementItems(
+      selectedProcurement.items.map((item) => ({
+        id: item.id,
+        tempId: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        estimatedCost: item.estimatedCost ?? 0,
+        type: item.type,
+      })),
+    );
+    setShowCreateProcurementModal(true);
+  };
+
+  const handleCreateProcurement = async () => {
+    if (!id || !isProcurementFormValid()) return;
+    setIsSavingProcurement(true);
+    setProcurementError(null);
+    try {
+      let requestId = editingProcurement?.id;
+      const isEditing = Boolean(editingProcurement?.id);
+
+      if (isEditing && requestId) {
+        await updateProcurement(requestId, {
+          title: procurementTitle.trim(),
+          description: procurementDescription.trim(),
+        });
+      } else {
+        const created = await createProcurement({
+          projectId: id,
+          title: procurementTitle.trim(),
+          description: procurementDescription.trim(),
+        });
+        requestId = created.id;
+      }
+
+      if (!requestId) {
+        throw new Error("Unable to resolve procurement request id");
+      }
+
+      const existingIds = new Set(
+        (editingProcurement?.items ?? []).map((item) => item.id),
+      );
+      const currentIds = new Set(
+        procurementItems
+          .map((item) => item.id)
+          .filter((itemId): itemId is string => Boolean(itemId)),
+      );
+
+      const itemsToDelete = Array.from(existingIds).filter(
+        (itemId) => !currentIds.has(itemId),
+      );
+
+      const itemsToUpdate = procurementItems.filter((item) => item.id);
+      const itemsToAdd = procurementItems.filter((item) => !item.id);
+
+      await Promise.all([
+        ...itemsToDelete.map((itemId) => deleteProcurementItem(itemId)),
+        ...itemsToUpdate.map((item) =>
+          updateProcurementItem(item.id as string, {
+            name: item.name.trim(),
+            quantity: item.quantity,
+            unit: item.unit.trim(),
+            estimatedCost: item.estimatedCost ?? 0,
+            type: item.type,
+          }),
+        ),
+        ...itemsToAdd.map((item) =>
+          addProcurementItem(requestId as string, {
+            name: item.name.trim(),
+            quantity: item.quantity,
+            unit: item.unit.trim(),
+            estimatedCost: item.estimatedCost ?? 0,
+            type: item.type,
+          }),
+        ),
+      ]);
+
+      await loadProject();
+      setShowCreateProcurementModal(false);
+      resetProcurementForm();
+    } catch (err) {
+      console.error(err);
+
+      console.log(err?.response?.data?.message);
+      setProcurementError("Failed to save procurement request. Try again.");
+    } finally {
+      setIsSavingProcurement(false);
+    }
+  };
+
+  const handleSubmitProcurement = async () => {
+    if (!selectedProcurement) return;
+    try {
+      await submitProcurement(selectedProcurement.id);
+      await loadProject();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const mapAttachment = (attachments: any[] | undefined) => {
+    const attachmentItem = attachments?.[0];
+    if (!attachmentItem) return undefined;
+    const name = attachmentItem.fileUrl?.split("/").pop() ?? "attachment";
+    const rawUrl = attachmentItem.fileUrl ?? "";
+    const url = rawUrl.startsWith("http") ? rawUrl : `${apiBaseUrl}${rawUrl}`;
+    return {
+      name,
+      type: attachmentItem.mimeType,
+      url,
+    };
+  };
+
+  const loadMessages = async (threadId: string) => {
+    const data = await getThreadMessages(threadId);
+    const mappedMessages: Message[] = data.map((message: any) => ({
+      id: message.id,
+      senderId: message.sender?.id ?? "",
+      sender: message.sender?.name ?? "Unknown",
+      role: (message.sender?.role ?? "STAFF").toLowerCase() as Message["role"],
+      content: message.content ?? "",
+      timestamp: new Date(message.createdAt).toLocaleString(),
+      attachments: mapAttachment(message.attachments)
+        ? [mapAttachment(message.attachments)!]
+        : undefined,
+    }));
+    setThreadMessages(mappedMessages);
+  };
+
+  const handleSelectThread = async (thread: Thread) => {
+    setSelectedThread(thread);
+    setThreads((prev) =>
+      prev.map((item) =>
+        item.id === thread.id ? { ...item, unreadCount: 0 } : item,
+      ),
+    );
+    socketRef.current?.emit("join-thread", thread.id);
+    await loadMessages(thread.id);
+    await markChatThreadRead(thread.id);
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedThread) return;
+    if (!newMessage.trim() && !messageAttachment) return;
+
+    try {
+      await sendThreadMessage(selectedThread.id, {
+        content: newMessage.trim() || undefined,
+        file: messageAttachment,
+      });
+      setNewMessage("");
+      setMessageAttachment(null);
+      await loadMessages(selectedThread.id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMessageAttachClick = () => {
+    messageFileRef.current?.click();
+  };
+
+  const handleMessageFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    setMessageAttachment(file);
+  };
+
+  const statusStyle = getStatusStyle(project?.status);
   const StatusIcon = statusStyle.icon;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <StaffSidebar activeItem="projects" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
         <div className="max-w-7xl mx-auto">
           {/* Back Button */}
           <button
-            onClick={() => console.log("Navigate back to projects")}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-2 mb-4 text-sm font-medium transition-all hover:underline"
             style={{ color: "#4169e1" }}
           >
@@ -561,16 +819,16 @@ export default function StaffProjectDetailPage() {
                   className="text-3xl font-semibold mb-2"
                   style={{ color: "#001f54" }}
                 >
-                  {project.name}
+                  {project?.name}
                 </h1>
-                <p className="text-lg text-gray-600">{project.clientName}</p>
+                <p className="text-lg text-gray-600">{project?.clientName}</p>
               </div>
               <span
                 className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-full font-medium"
                 style={statusStyle}
               >
                 <StatusIcon className="w-4 h-4" />
-                {project.status}
+                {project?.status}
               </span>
             </div>
 
@@ -578,11 +836,11 @@ export default function StaffProjectDetailPage() {
             <div className="flex items-center gap-6 mb-4 text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>Started: {project.startDate}</span>
+                <span>Started: {project?.createdDate}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                <span>Due: {project.completionDate}</span>
+                <span>Due: {project?.deadline}</span>
               </div>
             </div>
 
@@ -593,14 +851,14 @@ export default function StaffProjectDetailPage() {
                   Overall Progress
                 </span>
                 <span className="font-semibold" style={{ color: "#4169e1" }}>
-                  {project.progress}%
+                  {project?.progress}%
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
-                    width: `${project.progress}%`,
+                    width: `${project?.progress}%`,
                     backgroundColor: "#4169e1",
                   }}
                 />
@@ -684,7 +942,7 @@ export default function StaffProjectDetailPage() {
                   </span>
                 )}
               </button>
-              <button
+              {/* <button
                 onClick={() => setActiveTab("requests")}
                 className={`px-6 py-4 text-sm font-medium transition-all whitespace-nowrap ${
                   activeTab === "requests"
@@ -705,7 +963,7 @@ export default function StaffProjectDetailPage() {
                     {customerRequests.filter((r) => r.status === "Open").length}
                   </span>
                 )}
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -722,7 +980,7 @@ export default function StaffProjectDetailPage() {
                     Project Description
                   </h3>
                   <p className="text-gray-700 leading-relaxed">
-                    {project.description}
+                    {project?.description}
                   </p>
                 </div>
 
@@ -736,9 +994,9 @@ export default function StaffProjectDetailPage() {
                       Assigned Team
                     </h3>
                     <div className="space-y-3">
-                      {project.assignedStaff.map((staff) => (
+                      {project?.assignedStaff.slice(0, 2).map((s) => (
                         <div
-                          key={staff.id}
+                          key={s.staff.id}
                           className="flex items-center gap-3 p-3 border rounded-lg"
                           style={{ borderColor: "#e5e7eb" }}
                         >
@@ -746,23 +1004,23 @@ export default function StaffProjectDetailPage() {
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
                             style={{ backgroundColor: "#4169e1" }}
                           >
-                            {staff.name
+                            {s.staff.name
                               .split(" ")
                               .map((n) => n[0])
                               .join("")}
                           </div>
                           <div className="flex-1">
                             <p className="font-medium text-gray-900">
-                              {staff.name}
+                              {s.staff.name}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {staff.role}
+                              {s.staff.role}
                             </p>
                           </div>
                           <a
-                            href={`mailto:${staff.email}`}
+                            href={`mailto:${s.staff.email}`}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-all"
-                            title={staff.email}
+                            title={s.staff.email}
                           >
                             <Mail className="w-4 h-4 text-gray-400" />
                           </a>
@@ -783,33 +1041,33 @@ export default function StaffProjectDetailPage() {
                       className="p-4 border rounded-lg space-y-3"
                       style={{ borderColor: "#e5e7eb" }}
                     >
-                      <div className="flex items-center gap-2">
+                      {/* <div className="flex items-center gap-2">
                         <Building className="w-5 h-5 text-gray-400" />
                         <span className="text-gray-900">
-                          {project.clientInfo.company}
+                          {project?.clientInfo.name}
                         </span>
-                      </div>
+                      </div> */}
                       <div className="flex items-center gap-2">
                         <Users className="w-5 h-5 text-gray-400" />
                         <span className="text-gray-900">
-                          {project.clientInfo.contactName}
+                          {project?.clientInfo.name}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Mail className="w-5 h-5 text-gray-400" />
                         <a
-                          href={`mailto:${project.clientInfo.email}`}
+                          href={`mailto:${project?.clientInfo.email}`}
                           className="text-blue-600 hover:underline"
                         >
-                          {project.clientInfo.email}
+                          {project?.clientInfo.email}
                         </a>
                       </div>
-                      <div className="flex items-center gap-2">
+                      {/* <div className="flex items-center gap-2">
                         <Phone className="w-5 h-5 text-gray-400" />
                         <span className="text-gray-900">
-                          {project.clientInfo.phone}
+                          {project?.clientInfo.phone}
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
@@ -824,7 +1082,7 @@ export default function StaffProjectDetailPage() {
                   </h3>
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                     <p className="text-gray-700 leading-relaxed">
-                      {project.latestUpdate}
+                      {project?.latestUpdate}
                     </p>
                   </div>
                 </div>
@@ -852,49 +1110,58 @@ export default function StaffProjectDetailPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {updates.map((update, index) => (
-                    <div
-                      key={update.id}
-                      className="relative pl-8 pb-8 border-l-2"
-                      style={{
-                        borderColor:
-                          index === updates.length - 1
-                            ? "transparent"
-                            : "#e5e7eb",
-                      }}
-                    >
-                      {/* Timeline dot */}
-                      <div
-                        className="absolute left-0 top-0 w-4 h-4 rounded-full -ml-[9px]"
-                        style={{ backgroundColor: "#4169e1" }}
-                      />
+                  {!project.updates ? (
+                    <div>Loading Updates</div>
+                  ) : (
+                    <>
+                      {updates?.map((update, index) => (
+                        <div
+                          key={update.id}
+                          className="relative pl-8 pb-8 border-l-2"
+                          style={{
+                            borderColor:
+                              index === project.updates.length - 1
+                                ? "transparent"
+                                : "#e5e7eb",
+                          }}
+                        >
+                          {/* Timeline dot */}
+                          <div
+                            className="absolute left-0 top-0 w-4 h-4 rounded-full -ml-[9px]"
+                            style={{ backgroundColor: "#4169e1" }}
+                          />
 
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {update.author}
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {update.staff.name}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  {update.createdAt}
+                                </p>
+                              </div>
+                              <span
+                                className="text-sm font-semibold px-3 py-1 rounded-full"
+                                style={{
+                                  backgroundColor: "#4169e120",
+                                  color: "#4169e1",
+                                }}
+                              >
+                                {update.progress}% Complete
+                              </span>
+                            </div>
+                            <p className="text-gray-700 leading-relaxed">
+                              {update.eventType}
                             </p>
-                            <p className="text-sm text-gray-600">
-                              {update.date}
+                            <p className="text-gray-700 leading-relaxed">
+                              {update.notes}
                             </p>
                           </div>
-                          <span
-                            className="text-sm font-semibold px-3 py-1 rounded-full"
-                            style={{
-                              backgroundColor: "#4169e120",
-                              color: "#4169e1",
-                            }}
-                          >
-                            {update.progress}% Complete
-                          </span>
                         </div>
-                        <p className="text-gray-700 leading-relaxed">
-                          {update.notes}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -920,13 +1187,20 @@ export default function StaffProjectDetailPage() {
                 </div>
 
                 {/* Group documents by category */}
-                {["Reports", "Datasets"].map((category) => (
+                {[
+                  "REPORT",
+                  "CONTRACT",
+                  "DRAWING",
+                  "INVOICE",
+                  "ANALYTICS",
+                  "OTHER",
+                ].map((category) => (
                   <div key={category} className="mb-6">
                     <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
                       {category}
                     </h4>
                     <div className="space-y-2">
-                      {documents
+                      {project?.documents
                         .filter((doc) => doc.category === category)
                         .map((doc) => (
                           <div
@@ -949,7 +1223,7 @@ export default function StaffProjectDetailPage() {
                               </p>
                               <p className="text-sm text-gray-600">
                                 {doc.version} • Uploaded by {doc.uploadedBy} on{" "}
-                                {doc.uploadedDate} • {doc.size}
+                                {doc.uploadedDate} • {/*doc.size*/}
                               </p>
                             </div>
                             <div className="flex gap-2">
@@ -985,7 +1259,7 @@ export default function StaffProjectDetailPage() {
                     Procurement Requests
                   </h3>
                   <button
-                    onClick={() => setShowCreateProcurementModal(true)}
+                    onClick={handleOpenCreateProcurement}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:shadow-md"
                     style={{ backgroundColor: "#4169e1", color: "white" }}
                   >
@@ -995,7 +1269,7 @@ export default function StaffProjectDetailPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {procurementRequests.map((request) => {
+                  {project?.procurementRequests?.map((request) => {
                     const statusStyle = getProcurementStatusStyle(
                       request.status,
                     );
@@ -1019,17 +1293,16 @@ export default function StaffProjectDetailPage() {
                             className="text-xs px-2.5 py-1 rounded-full font-medium ml-4"
                             style={statusStyle}
                           >
-                            {request.status}
+                            {getProcurementStatusLabel(request.status)}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <span className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />$
-                            {request.totalCost.toLocaleString()}
+                            ₦ {getProcurementTotal(request).toLocaleString()}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            {request.createdDate}
+                            {formatProcurementDate(request.createdAt)}
                           </span>
                           <span className="ml-auto flex items-center gap-1 text-blue-600 font-medium">
                             View Details
@@ -1074,7 +1347,7 @@ export default function StaffProjectDetailPage() {
                         selectedProcurement.status,
                       )}
                     >
-                      {selectedProcurement.status}
+                      {getProcurementStatusLabel(selectedProcurement.status)}
                     </span>
                   </div>
                 </div>
@@ -1116,15 +1389,15 @@ export default function StaffProjectDetailPage() {
                             {item.name}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 text-center">
-                            {item.quantity}
+                            {item.quantity} {item.unit}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 text-right">
-                            ${item.estimatedCost.toFixed(2)}
+                            ₦{(item.estimatedCost ?? 0).toFixed(2)}
                           </td>
                           <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
-                            $
+                            ₦
                             {(
-                              item.quantity * item.estimatedCost
+                              item.quantity * (item.estimatedCost ?? 0)
                             ).toLocaleString()}
                           </td>
                         </tr>
@@ -1145,22 +1418,39 @@ export default function StaffProjectDetailPage() {
                           className="px-4 py-3 text-lg font-bold text-right"
                           style={{ color: "#001f54" }}
                         >
-                          ${selectedProcurement.totalCost.toLocaleString()}
+                          ₦
+                          {getProcurementTotal(
+                            selectedProcurement,
+                          ).toLocaleString()}
                         </td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
 
-                {selectedProcurement.status === "Draft" && (
+                {selectedProcurement.status === "REJECTED" &&
+                  selectedProcurement.rejectionReason && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+                        Rejection Reason
+                      </h4>
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                        {selectedProcurement.rejectionReason}
+                      </div>
+                    </div>
+                  )}
+
+                {selectedProcurement.status === "DRAFT" && (
                   <div className="flex gap-3">
                     <button
+                      onClick={handleSubmitProcurement}
                       className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:shadow-md"
                       style={{ backgroundColor: "#4169e1", color: "white" }}
                     >
                       Submit for Approval
                     </button>
                     <button
+                      onClick={handleEditProcurement}
                       className="flex items-center gap-2 px-6 py-3 border rounded-lg font-medium transition-all hover:bg-gray-50"
                       style={{ borderColor: "#e5e7eb" }}
                     >
@@ -1186,7 +1476,7 @@ export default function StaffProjectDetailPage() {
                   {threads.map((thread) => (
                     <button
                       key={thread.id}
-                      onClick={() => setSelectedThread(thread)}
+                      onClick={() => handleSelectThread(thread)}
                       className="w-full text-left p-4 border-2 rounded-xl hover:bg-gray-50 transition-all"
                       style={{
                         borderColor:
@@ -1250,7 +1540,10 @@ export default function StaffProjectDetailPage() {
                   style={{ borderColor: "#e5e7eb" }}
                 >
                   <button
-                    onClick={() => setSelectedThread(null)}
+                    onClick={() => {
+                      setSelectedThread(null);
+                      setThreadMessages([]);
+                    }}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-all"
                   >
                     <ArrowLeft className="w-5 h-5" />
@@ -1269,7 +1562,7 @@ export default function StaffProjectDetailPage() {
 
                 {/* Messages List */}
                 <div className="flex-1 overflow-y-auto py-4 space-y-4">
-                  {selectedThread.messages.map((message) => (
+                  {threadMessages.map((message) => (
                     <div key={message.id} className="flex gap-3">
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0"
@@ -1297,27 +1590,12 @@ export default function StaffProjectDetailPage() {
                           </span>
                         </div>
                         <div className="bg-gray-100 rounded-lg p-3">
-                          <p className="text-sm text-gray-900">
-                            {message.content}
-                          </p>
+                          <MessageDisplay
+                            content={message.content}
+                            attachment={message.attachments?.[0]}
+                            isOwnMessage={message.senderId === userData?.id}
+                          />
                         </div>
-                        {message.attachments &&
-                          message.attachments.length > 0 && (
-                            <div className="mt-2 flex gap-2">
-                              {message.attachments.map((attachment, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center gap-2 px-3 py-2 bg-white border rounded-lg text-sm"
-                                  style={{ borderColor: "#e5e7eb" }}
-                                >
-                                  <Paperclip className="w-4 h-4 text-gray-400" />
-                                  <span className="text-gray-700">
-                                    {attachment.name}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
                       </div>
                     </div>
                   ))}
@@ -1330,17 +1608,30 @@ export default function StaffProjectDetailPage() {
                 >
                   <div className="flex gap-2 mb-3">
                     <button
+                      onClick={handleMessageAttachClick}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-all"
                       title="Upload image"
                     >
                       <Image className="w-5 h-5 text-gray-600" />
                     </button>
                     <button
+                      onClick={handleMessageAttachClick}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-all"
                       title="Attach file"
                     >
                       <Paperclip className="w-5 h-5 text-gray-600" />
                     </button>
+                    <input
+                      ref={messageFileRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleMessageFileChange}
+                    />
+                    {messageAttachment && (
+                      <div className="text-xs text-gray-600 self-center">
+                        Attached: {messageAttachment.name}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     <input
@@ -1361,6 +1652,7 @@ export default function StaffProjectDetailPage() {
                     />
                     <button
                       onClick={handleSendMessage}
+                      disabled={!newMessage.trim() && !messageAttachment}
                       className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:shadow-md"
                       style={{ backgroundColor: "#4169e1", color: "white" }}
                     >
@@ -1373,7 +1665,7 @@ export default function StaffProjectDetailPage() {
             )}
 
             {/* Requests Tab */}
-            {activeTab === "requests" && (
+            {/* {activeTab === "requests" && (
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h3
@@ -1479,7 +1771,7 @@ export default function StaffProjectDetailPage() {
                         className="border rounded-lg p-5 hover:shadow-md transition-all"
                         style={{ borderColor: "#e5e7eb" }}
                       >
-                        {/* Header */}
+                        {/* Header 
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-start gap-3 flex-1">
                             <div
@@ -1505,7 +1797,7 @@ export default function StaffProjectDetailPage() {
                           </div>
                         </div>
 
-                        {/* Metadata */}
+                        {/* Metadata 
                         <div className="flex flex-wrap items-center gap-3 mb-3">
                           <span
                             className="px-3 py-1 rounded-full text-xs font-medium capitalize"
@@ -1536,7 +1828,7 @@ export default function StaffProjectDetailPage() {
                           </span>
                         </div>
 
-                        {/* Footer */}
+                        {/* Footer 
                         <div
                           className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t"
                           style={{ borderColor: "#e5e7eb" }}
@@ -1583,7 +1875,7 @@ export default function StaffProjectDetailPage() {
                   </div>
                 )}
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </main>
@@ -1696,8 +1988,17 @@ export default function StaffProjectDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   File *
                 </label>
-                <div
-                  className="border-2 border-dashed rounded-lg p-8 text-center"
+                <input
+                  ref={uploadFileRef}
+                  type="file"
+                  onChange={handleUploadFileChange}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                />
+                <button
+                  type="button"
+                  onClick={handleUploadFilePick}
+                  className="w-full border-2 border-dashed rounded-lg p-8 text-center transition-all hover:bg-gray-50"
                   style={{ borderColor: "#e5e7eb" }}
                 >
                   <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
@@ -1707,7 +2008,12 @@ export default function StaffProjectDetailPage() {
                   <p className="text-xs text-gray-500">
                     PDF, DOC, DOCX, XLS, XLSX (Max 50MB)
                   </p>
-                </div>
+                  {uploadFile && (
+                    <p className="text-xs text-gray-700 mt-3">
+                      Selected: {uploadFile.name}
+                    </p>
+                  )}
+                </button>
               </div>
 
               <div>
@@ -1744,10 +2050,12 @@ export default function StaffProjectDetailPage() {
                     } as React.CSSProperties
                   }
                 >
-                  <option>Reports</option>
-                  <option>Datasets</option>
-                  <option>Contracts</option>
-                  <option>Invoices</option>
+                  <option value="REPORT">Report</option>
+                  <option value="ANALYTICS">Analytics / Dataset</option>
+                  <option value="CONTRACT">Contract</option>
+                  <option value="DRAWING">Drawing</option>
+                  <option value="INVOICE">Invoice</option>
+                  <option value="OTHER">Other</option>
                 </select>
               </div>
 
@@ -1784,7 +2092,7 @@ export default function StaffProjectDetailPage() {
               </button>
               <button
                 onClick={handleUploadDocument}
-                disabled={!uploadFileName}
+                disabled={!uploadFile || !uploadFileName.trim()}
                 className="px-6 py-3 rounded-lg font-medium transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: "#4169e1", color: "white" }}
               >
@@ -1808,10 +2116,15 @@ export default function StaffProjectDetailPage() {
                 className="text-xl font-semibold"
                 style={{ color: "#001f54" }}
               >
-                Create Procurement Request
+                {editingProcurement
+                  ? "Edit Procurement Request"
+                  : "Create Procurement Request"}
               </h2>
               <button
-                onClick={() => setShowCreateProcurementModal(false)}
+                onClick={() => {
+                  setShowCreateProcurementModal(false);
+                  resetProcurementForm();
+                }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-all"
               >
                 <X className="w-5 h-5 text-gray-500" />
@@ -1822,7 +2135,7 @@ export default function StaffProjectDetailPage() {
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <p className="text-sm text-gray-700">
                   <strong>Note:</strong> Procurement requests are tied to this
-                  project: <strong>{project.name}</strong>
+                  project: <strong>{project?.name}</strong>
                 </p>
               </div>
 
@@ -1874,10 +2187,12 @@ export default function StaffProjectDetailPage() {
                       setProcurementItems([
                         ...procurementItems,
                         {
-                          id: Date.now(),
+                          tempId: buildTempId(),
                           name: "",
                           quantity: 1,
+                          unit: "",
                           estimatedCost: 0,
+                          type: "MATERIAL",
                         },
                       ])
                     }
@@ -1899,13 +2214,20 @@ export default function StaffProjectDetailPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    <div className="grid grid-cols-5 gap-3 text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
+                      <span>Item Name</span>
+                      <span>Quantity</span>
+                      <span>Unit</span>
+                      <span>Type</span>
+                      <span>Unit Cost</span>
+                    </div>
                     {procurementItems.map((item, index) => (
                       <div
-                        key={item.id}
+                        key={item.tempId}
                         className="flex gap-3 items-start p-3 border rounded-lg"
                         style={{ borderColor: "#e5e7eb" }}
                       >
-                        <div className="flex-1 grid grid-cols-3 gap-3">
+                        <div className="flex-1 grid grid-cols-5 gap-3">
                           <input
                             type="text"
                             placeholder="Item name"
@@ -1926,6 +2248,7 @@ export default function StaffProjectDetailPage() {
                           <input
                             type="number"
                             placeholder="Qty"
+                            min={1}
                             value={item.quantity}
                             onChange={(e) => {
                               const updated = [...procurementItems];
@@ -1941,9 +2264,46 @@ export default function StaffProjectDetailPage() {
                             }
                           />
                           <input
+                            type="text"
+                            placeholder="Unit (e.g., pcs)"
+                            value={item.unit}
+                            onChange={(e) => {
+                              const updated = [...procurementItems];
+                              updated[index].unit = e.target.value;
+                              setProcurementItems(updated);
+                            }}
+                            className="px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2"
+                            style={
+                              {
+                                borderColor: "#e5e7eb",
+                                "--tw-ring-color": "#4169e1",
+                              } as React.CSSProperties
+                            }
+                          />
+                          <select
+                            value={item.type}
+                            onChange={(e) => {
+                              const updated = [...procurementItems];
+                              updated[index].type = e.target
+                                .value as ProcurementItemType;
+                              setProcurementItems(updated);
+                            }}
+                            className="px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 cursor-pointer"
+                            style={
+                              {
+                                borderColor: "#e5e7eb",
+                                "--tw-ring-color": "#4169e1",
+                              } as React.CSSProperties
+                            }
+                          >
+                            <option value="MATERIAL">Material</option>
+                            <option value="SERVICE">Service</option>
+                          </select>
+                          <input
                             type="number"
-                            placeholder="Est. cost"
-                            value={item.estimatedCost}
+                            placeholder="Unit cost"
+                            min={0}
+                            value={item.estimatedCost ?? 0}
                             onChange={(e) => {
                               const updated = [...procurementItems];
                               updated[index].estimatedCost = Number(
@@ -1975,6 +2335,10 @@ export default function StaffProjectDetailPage() {
                   </div>
                 )}
               </div>
+
+              {procurementError && (
+                <p className="text-sm text-red-600">{procurementError}</p>
+              )}
             </div>
 
             <div
@@ -1982,7 +2346,10 @@ export default function StaffProjectDetailPage() {
               style={{ borderColor: "#e5e7eb" }}
             >
               <button
-                onClick={() => setShowCreateProcurementModal(false)}
+                onClick={() => {
+                  setShowCreateProcurementModal(false);
+                  resetProcurementForm();
+                }}
                 className="px-6 py-3 border rounded-lg font-medium transition-all hover:bg-gray-50"
                 style={{ borderColor: "#e5e7eb", color: "#374151" }}
               >
@@ -1990,15 +2357,15 @@ export default function StaffProjectDetailPage() {
               </button>
               <button
                 onClick={handleCreateProcurement}
-                disabled={
-                  !procurementTitle ||
-                  !procurementDescription ||
-                  procurementItems.length === 0
-                }
+                disabled={!isProcurementFormValid() || isSavingProcurement}
                 className="px-6 py-3 rounded-lg font-medium transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: "#4169e1", color: "white" }}
               >
-                Create Request
+                {isSavingProcurement
+                  ? "Saving..."
+                  : editingProcurement
+                    ? "Save Changes"
+                    : "Create Request"}
               </button>
             </div>
           </div>

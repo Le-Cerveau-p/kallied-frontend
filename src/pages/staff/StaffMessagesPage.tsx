@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import StaffSidebar from "../../components/StaffSidebar";
+import { MessageDisplay } from "../../components/MessageDisplay";
 import {
   MessageCircle,
   Users,
@@ -11,330 +12,303 @@ import {
   Search,
   Filter,
 } from "lucide-react";
+import {
+  getChatThreads,
+  getThreadMessages,
+  markChatThreadRead,
+  sendThreadMessage,
+} from "../../api/chat";
+import { getCurrentUser } from "../../api/users";
+import { getChatSocket } from "../../utils/chatSocket";
 
 interface Message {
-  id: number;
+  id: string;
+  senderId: string;
   sender: string;
   role: "client" | "staff" | "admin";
   content: string;
   timestamp: string;
-  attachments?: { name: string; type: string }[];
+  attachment?: {
+    name: string;
+    type: string;
+    url: string;
+    size?: string;
+  };
 }
 
 interface Thread {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   projectName: string;
   threadType: "Main" | "Staff";
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
   participants: string[];
-  messages: Message[];
 }
 
 export default function StaffMessagesPage() {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const [userId, setUserId] = useState<string | null>(null);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"All" | "Main" | "Staff">("All");
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const socketRef = useRef<ReturnType<typeof getChatSocket> | null>(null);
 
-  // Mock threads data
-  const allThreads: Thread[] = [
-    {
-      id: 1,
-      projectId: 1,
-      projectName: "Website Redesign",
-      threadType: "Main",
-      lastMessage:
-        "The latest designs look great! When can we expect the staging environment?",
-      lastMessageTime: "Jan 21, 2026 at 2:45 PM",
-      unreadCount: 2,
-      participants: [
-        "John Smith (Client)",
-        "Emily Davis",
-        "Sarah Chen",
-        "Mike Johnson",
-      ],
-      messages: [
-        {
-          id: 1,
-          sender: "John Smith",
-          role: "client",
-          content:
-            "Hi team, thanks for the update. Can you share the timeline for the next phase?",
-          timestamp: "Jan 20, 2026 at 9:30 AM",
-        },
-        {
-          id: 2,
-          sender: "Emily Davis",
-          role: "staff",
-          content:
-            "Absolutely! We're planning to complete development by Jan 25, then move to testing. I'll send you a detailed timeline today.",
-          timestamp: "Jan 20, 2026 at 10:15 AM",
-        },
-        {
-          id: 3,
-          sender: "John Smith",
-          role: "client",
-          content:
-            "The latest designs look great! When can we expect the staging environment?",
-          timestamp: "Jan 21, 2026 at 2:45 PM",
-        },
-      ],
-    },
-    {
-      id: 2,
-      projectId: 1,
-      projectName: "Website Redesign",
-      threadType: "Staff",
-      lastMessage:
-        "Can someone review the mobile navigation code? I want to make sure it's accessible.",
-      lastMessageTime: "Jan 18, 2026 at 3:20 PM",
-      unreadCount: 0,
-      participants: ["Emily Davis", "Sarah Chen", "Mike Johnson"],
-      messages: [
-        {
-          id: 1,
-          sender: "Sarah Chen",
-          role: "staff",
-          content:
-            "The client approved all mockups. We can proceed with development.",
-          timestamp: "Jan 15, 2026 at 11:00 AM",
-        },
-        {
-          id: 2,
-          sender: "Mike Johnson",
-          role: "staff",
-          content: "Great! I'll start with the homepage components today.",
-          timestamp: "Jan 15, 2026 at 11:30 AM",
-        },
-        {
-          id: 3,
-          sender: "Mike Johnson",
-          role: "staff",
-          content:
-            "Can someone review the mobile navigation code? I want to make sure it's accessible.",
-          timestamp: "Jan 18, 2026 at 3:20 PM",
-        },
-      ],
-    },
-    {
-      id: 3,
-      projectId: 2,
-      projectName: "Mobile App Development",
-      threadType: "Main",
-      lastMessage: "Perfect! Looking forward to the next update.",
-      lastMessageTime: "Jan 20, 2026 at 4:15 PM",
-      unreadCount: 0,
-      participants: ["Lisa Anderson (Client)", "David Kim", "Mike Johnson"],
-      messages: [
-        {
-          id: 1,
-          sender: "Lisa Anderson",
-          role: "client",
-          content: "Hi team, just checking in on the API integration progress.",
-          timestamp: "Jan 20, 2026 at 1:00 PM",
-        },
-        {
-          id: 2,
-          sender: "David Kim",
-          role: "staff",
-          content:
-            "We've completed 80% of the API endpoints. All the critical ones are working perfectly. We'll have the rest done by end of week.",
-          timestamp: "Jan 20, 2026 at 2:30 PM",
-        },
-        {
-          id: 3,
-          sender: "Lisa Anderson",
-          role: "client",
-          content: "Perfect! Looking forward to the next update.",
-          timestamp: "Jan 20, 2026 at 4:15 PM",
-        },
-      ],
-    },
-    {
-      id: 4,
-      projectId: 2,
-      projectName: "Mobile App Development",
-      threadType: "Staff",
-      lastMessage: "I'll take a look and provide feedback by tomorrow.",
-      lastMessageTime: "Jan 21, 2026 at 10:00 AM",
-      unreadCount: 1,
-      participants: ["David Kim", "Mike Johnson", "Emily Davis"],
-      messages: [
-        {
-          id: 1,
-          sender: "David Kim",
-          role: "staff",
-          content:
-            "I've finished the authentication flow. Can someone test it on iOS?",
-          timestamp: "Jan 20, 2026 at 5:00 PM",
-        },
-        {
-          id: 2,
-          sender: "Mike Johnson",
-          role: "staff",
-          content: "I'll take a look and provide feedback by tomorrow.",
-          timestamp: "Jan 21, 2026 at 10:00 AM",
-        },
-      ],
-    },
-    {
-      id: 5,
-      projectId: 3,
-      projectName: "E-commerce Platform",
-      threadType: "Main",
-      lastMessage: "Thank you for the quick turnaround!",
-      lastMessageTime: "Jan 19, 2026 at 3:30 PM",
-      unreadCount: 0,
-      participants: ["Robert Chen (Client)", "Jordan Lee", "Sarah Chen"],
-      messages: [
-        {
-          id: 1,
-          sender: "Robert Chen",
-          role: "client",
-          content: "The payment integration is working smoothly. Great work!",
-          timestamp: "Jan 19, 2026 at 3:00 PM",
-        },
-        {
-          id: 2,
-          sender: "Jordan Lee",
-          role: "staff",
-          content:
-            "Thanks Robert! We ran extensive tests to ensure everything is secure and stable.",
-          timestamp: "Jan 19, 2026 at 3:15 PM",
-        },
-        {
-          id: 3,
-          sender: "Robert Chen",
-          role: "client",
-          content: "Thank you for the quick turnaround!",
-          timestamp: "Jan 19, 2026 at 3:30 PM",
-        },
-      ],
-    },
-    {
-      id: 6,
-      projectId: 4,
-      projectName: "Brand Identity Package",
-      threadType: "Main",
-      lastMessage: "We'll schedule a presentation for next week.",
-      lastMessageTime: "Jan 22, 2026 at 11:45 AM",
-      unreadCount: 3,
-      participants: ["Maria Garcia (Client)", "Sarah Chen", "Emily Davis"],
-      messages: [
-        {
-          id: 1,
-          sender: "Maria Garcia",
-          role: "client",
-          content:
-            "Can we schedule a call to review the final brand guidelines?",
-          timestamp: "Jan 22, 2026 at 9:00 AM",
-        },
-        {
-          id: 2,
-          sender: "Sarah Chen",
-          role: "staff",
-          content:
-            "Absolutely! I have availability on Tuesday or Thursday afternoon. Which works better for you?",
-          timestamp: "Jan 22, 2026 at 10:30 AM",
-        },
-        {
-          id: 3,
-          sender: "Maria Garcia",
-          role: "client",
-          content: "Thursday works perfectly. Let's do 2 PM.",
-          timestamp: "Jan 22, 2026 at 11:00 AM",
-        },
-        {
-          id: 4,
-          sender: "Sarah Chen",
-          role: "staff",
-          content: "We'll schedule a presentation for next week.",
-          timestamp: "Jan 22, 2026 at 11:45 AM",
-        },
-      ],
-    },
-    {
-      id: 7,
-      projectId: 5,
-      projectName: "CRM System Integration",
-      threadType: "Staff",
-      lastMessage: "Database migration is scheduled for this weekend.",
-      lastMessageTime: "Jan 23, 2026 at 9:15 AM",
-      unreadCount: 1,
-      participants: ["Mike Johnson", "David Kim", "Jordan Lee"],
-      messages: [
-        {
-          id: 1,
-          sender: "Mike Johnson",
-          role: "staff",
-          content:
-            "We need to coordinate the database migration. Any concerns?",
-          timestamp: "Jan 23, 2026 at 8:00 AM",
-        },
-        {
-          id: 2,
-          sender: "Jordan Lee",
-          role: "staff",
-          content: "Database migration is scheduled for this weekend.",
-          timestamp: "Jan 23, 2026 at 9:15 AM",
-        },
-      ],
-    },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    const loadThreads = async () => {
+      try {
+        const [threadsData, user] = await Promise.all([
+          getChatThreads(),
+          getCurrentUser(),
+        ]);
 
-  // Filter threads
-  const filteredThreads = allThreads.filter((thread) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      thread.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      thread.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter =
-      filterType === "All" || thread.threadType === filterType;
-    return matchesSearch && matchesFilter;
-  });
+        if (!isMounted) return;
 
-  // Group threads by project
-  const groupedThreads = filteredThreads.reduce(
-    (acc, thread) => {
-      if (!acc[thread.projectName]) {
-        acc[thread.projectName] = [];
+        const mappedThreads: Thread[] = threadsData.map((thread: any) => ({
+          id: thread.id,
+          projectId: thread.projectId,
+          projectName: thread.projectName,
+          threadType: thread.type === "STAFF_ONLY" ? "Staff" : "Main",
+          lastMessage: thread.lastMessage ?? "No messages yet",
+          lastMessageTime: thread.lastMessageAt
+            ? new Date(thread.lastMessageAt).toLocaleString()
+            : "-",
+          unreadCount: thread.unreadCount ?? 0,
+          participants: (thread.participants ?? []).map((p: any) => p.name),
+        }));
+
+        setThreads(mappedThreads);
+        setUserId(user?.id ?? null);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      acc[thread.projectName].push(thread);
-      return acc;
-    },
-    {} as Record<string, Thread[]>,
+    };
+
+    loadThreads();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const refreshThreads = useCallback(async () => {
+    try {
+      const threadsData = await getChatThreads();
+      const mappedThreads: Thread[] = threadsData.map((thread: any) => ({
+        id: thread.id,
+        projectId: thread.projectId,
+        projectName: thread.projectName,
+        threadType: thread.type === "STAFF_ONLY" ? "Staff" : "Main",
+        lastMessage: thread.lastMessage ?? "No messages yet",
+        lastMessageTime: thread.lastMessageAt
+          ? new Date(thread.lastMessageAt).toLocaleString()
+          : "-",
+        unreadCount: thread.unreadCount ?? 0,
+        participants: (thread.participants ?? []).map((p: any) => p.name),
+      }));
+      setThreads(mappedThreads);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const socket = getChatSocket();
+    socketRef.current = socket;
+
+    const handleNewMessage = (message: any) => {
+      const messageThreadId = message.threadId;
+      const senderId = message.sender?.id ?? "";
+      const isActiveThread = selectedThread?.id === messageThreadId;
+      const mappedMessage: Message = {
+        id: message.id,
+        senderId,
+        sender: message.sender?.name ?? "Unknown",
+        role: (message.sender?.role ?? "STAFF").toLowerCase() as Message["role"],
+        content: message.content ?? "",
+        timestamp: new Date(message.createdAt).toLocaleString(),
+        attachment: mapAttachment(message.attachments),
+      };
+
+      setThreads((prev) =>
+        prev.map((thread) => {
+          if (thread.id !== messageThreadId) return thread;
+          const shouldIncrement =
+            senderId && senderId !== userId && !isActiveThread;
+          return {
+            ...thread,
+            lastMessage: mappedMessage.content || "Sent an attachment",
+            lastMessageTime: mappedMessage.timestamp,
+            unreadCount: shouldIncrement
+              ? (thread.unreadCount ?? 0) + 1
+              : thread.unreadCount ?? 0,
+          };
+        }),
+      );
+
+      setMessages((prev) => {
+        if (!isActiveThread) {
+          return prev;
+        }
+        return [...prev, mappedMessage];
+      });
+
+      if (isActiveThread && senderId && senderId !== userId) {
+        markChatThreadRead(messageThreadId).catch(console.error);
+      }
+    };
+
+    const handleThreadUpdated = () => {
+      void refreshThreads();
+    };
+
+    const handleThreadRead = (payload: any) => {
+      if (payload?.userId && payload.userId === userId) {
+        void refreshThreads();
+      }
+    };
+
+    socket.on("new-message", handleNewMessage);
+    socket.on("thread-updated", handleThreadUpdated);
+    socket.on("thread-read", handleThreadRead);
+    return () => {
+      socket.off("new-message", handleNewMessage);
+      socket.off("thread-updated", handleThreadUpdated);
+      socket.off("thread-read", handleThreadRead);
+    };
+  }, [selectedThread, userId, refreshThreads]);
+
+  const filteredThreads = useMemo(() => {
+    return threads.filter((thread) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        thread.projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        thread.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter =
+        filterType === "All" || thread.threadType === filterType;
+      return matchesSearch && matchesFilter;
+    });
+  }, [threads, searchQuery, filterType]);
+
+  const groupedThreads = useMemo(
+    () =>
+      filteredThreads.reduce(
+        (acc, thread) => {
+          if (!acc[thread.projectName]) {
+            acc[thread.projectName] = [];
+          }
+          acc[thread.projectName].push(thread);
+          return acc;
+        },
+        {} as Record<string, Thread[]>,
+      ),
+    [filteredThreads],
   );
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() && selectedThread) {
-      console.log(
-        "Sending message:",
-        newMessage,
-        "to thread:",
-        selectedThread.projectName,
-      );
-      setNewMessage("");
-    }
-  };
-
-  const totalUnreadCount = allThreads.reduce(
+  const totalUnreadCount = threads.reduce(
     (sum, thread) => sum + thread.unreadCount,
     0,
   );
 
+  const mapAttachment = (attachments: any[] | undefined) => {
+    const attachmentItem = attachments?.[0];
+    if (!attachmentItem) return undefined;
+    const name = attachmentItem.fileUrl?.split("/").pop() ?? "attachment";
+    const rawUrl = attachmentItem.fileUrl ?? "";
+    const url = rawUrl.startsWith("http") ? rawUrl : `${apiBaseUrl}${rawUrl}`;
+    return {
+      name,
+      type: attachmentItem.mimeType,
+      url,
+    };
+  };
+
+  const loadMessages = async (threadId: string) => {
+    const data = await getThreadMessages(threadId);
+    const mappedMessages: Message[] = data.map((message: any) => ({
+      id: message.id,
+      senderId: message.sender?.id ?? "",
+      sender: message.sender?.name ?? "Unknown",
+      role: (message.sender?.role ?? "STAFF").toLowerCase() as Message["role"],
+      content: message.content ?? "",
+      timestamp: new Date(message.createdAt).toLocaleString(),
+      attachment: mapAttachment(message.attachments),
+    }));
+    setMessages(mappedMessages);
+  };
+
+  const handleSelectThread = async (thread: Thread) => {
+    setSelectedThread(thread);
+    setThreads((prev) =>
+      prev.map((item) =>
+        item.id === thread.id ? { ...item, unreadCount: 0 } : item,
+      ),
+    );
+    socketRef.current?.emit("join-thread", thread.id);
+    await loadMessages(thread.id);
+    await markChatThreadRead(thread.id);
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedThread) return;
+    if (!newMessage.trim() && !attachment) return;
+
+    try {
+      await sendThreadMessage(selectedThread.id, {
+        content: newMessage.trim() || undefined,
+        file: attachment,
+      });
+      setNewMessage("");
+      setAttachment(null);
+      await loadMessages(selectedThread.id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setAttachment(file);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <AuthNavbar currentPage="" />
+        <StaffSidebar activeItem="messages" />
+        <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl" style={{ color: "#001f54" }}>
+              Loading messages...
+            </h1>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      <AuthNavbar currentPage="" />
       <StaffSidebar activeItem="messages" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
         <div className="max-w-7xl mx-auto">
           {!selectedThread ? (
             <>
-              {/* Page Header */}
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h1 className="text-4xl mb-2" style={{ color: "#001f54" }}>
@@ -347,17 +321,15 @@ export default function StaffMessagesPage() {
                         className="ml-2 text-sm font-medium"
                         style={{ color: "#dc2626" }}
                       >
-                        • {totalUnreadCount} unread
+                        - {totalUnreadCount} unread
                       </span>
                     )}
                   </p>
                 </div>
               </div>
 
-              {/* Search and Filter */}
               <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {/* Search */}
                   <div className="flex-1 relative">
                     <Search
                       className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -378,7 +350,6 @@ export default function StaffMessagesPage() {
                     />
                   </div>
 
-                  {/* Filter */}
                   <div className="flex items-center gap-2">
                     <Filter className="text-gray-400" size={18} />
                     <button
@@ -430,7 +401,6 @@ export default function StaffMessagesPage() {
                 </div>
               </div>
 
-              {/* Thread List Grouped by Project */}
               {Object.keys(groupedThreads).length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                   <div
@@ -457,9 +427,8 @@ export default function StaffMessagesPage() {
               ) : (
                 <div className="space-y-6">
                   {Object.entries(groupedThreads).map(
-                    ([projectName, threads]) => (
+                    ([projectName, projectThreads]) => (
                       <div key={projectName}>
-                        {/* Project Header */}
                         <div className="flex items-center gap-2 mb-3">
                           <div
                             className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -477,16 +446,15 @@ export default function StaffMessagesPage() {
                             {projectName}
                           </h2>
                           <span className="text-sm text-gray-500">
-                            ({threads.length})
+                            ({projectThreads.length})
                           </span>
                         </div>
 
-                        {/* Threads for this project */}
                         <div className="space-y-3 mb-6">
-                          {threads.map((thread) => (
+                          {projectThreads.map((thread) => (
                             <button
                               key={thread.id}
-                              onClick={() => setSelectedThread(thread)}
+                              onClick={() => handleSelectThread(thread)}
                               className="w-full text-left p-4 bg-white border-2 rounded-xl hover:bg-gray-50 transition-all"
                               style={{
                                 borderColor:
@@ -548,7 +516,7 @@ export default function StaffMessagesPage() {
                                   </p>
                                   <div className="flex items-center gap-2 text-xs text-gray-500">
                                     <span>{thread.lastMessageTime}</span>
-                                    <span>•</span>
+                                    <span>-</span>
                                     <span>
                                       {thread.participants.length} participants
                                     </span>
@@ -565,13 +533,14 @@ export default function StaffMessagesPage() {
               )}
             </>
           ) : (
-            // Thread View
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              {/* Thread Header */}
               <div className="p-6 border-b" style={{ borderColor: "#e5e7eb" }}>
                 <div className="flex items-start gap-4">
                   <button
-                    onClick={() => setSelectedThread(null)}
+                    onClick={() => {
+                      setSelectedThread(null);
+                      setMessages([]);
+                    }}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-all flex-shrink-0"
                   >
                     <ArrowLeft className="w-5 h-5" />
@@ -610,9 +579,8 @@ export default function StaffMessagesPage() {
                 </div>
               </div>
 
-              {/* Messages */}
               <div className="p-6 space-y-4 max-h-[500px] overflow-y-auto">
-                {selectedThread.messages.map((message) => (
+                {messages.map((message) => (
                   <div key={message.id} className="flex gap-3">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium flex-shrink-0"
@@ -640,47 +608,44 @@ export default function StaffMessagesPage() {
                         </span>
                       </div>
                       <div className="bg-gray-100 rounded-lg p-3">
-                        <p className="text-sm text-gray-900">
-                          {message.content}
-                        </p>
+                        <MessageDisplay
+                          content={message.content}
+                          attachment={message.attachment}
+                          isOwnMessage={message.senderId === userId}
+                        />
                       </div>
-                      {message.attachments &&
-                        message.attachments.length > 0 && (
-                          <div className="mt-2 flex gap-2">
-                            {message.attachments.map((attachment, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-2 px-3 py-2 bg-white border rounded-lg text-sm"
-                                style={{ borderColor: "#e5e7eb" }}
-                              >
-                                <Paperclip className="w-4 h-4 text-gray-400" />
-                                <span className="text-gray-700">
-                                  {attachment.name}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Message Composer */}
               <div className="p-6 border-t" style={{ borderColor: "#e5e7eb" }}>
                 <div className="flex gap-2 mb-3">
                   <button
+                    onClick={handleAttachClick}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-all"
                     title="Upload image"
                   >
                     <Image className="w-5 h-5 text-gray-600" />
                   </button>
                   <button
+                    onClick={handleAttachClick}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-all"
                     title="Attach file"
                   >
                     <Paperclip className="w-5 h-5 text-gray-600" />
                   </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  {attachment && (
+                    <div className="text-xs text-gray-600 self-center">
+                      Attached: {attachment.name}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <input
@@ -699,7 +664,7 @@ export default function StaffMessagesPage() {
                   />
                   <button
                     onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() && !attachment}
                     className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "#4169e1", color: "white" }}
                   >
@@ -715,3 +680,5 @@ export default function StaffMessagesPage() {
     </div>
   );
 }
+
+

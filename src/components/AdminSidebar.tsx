@@ -12,6 +12,7 @@ import {
   MessageSquare,
   ShoppingCart,
   FolderOpen,
+  Clock,
 } from "lucide-react";
 
 interface MenuItem {
@@ -70,12 +71,18 @@ export default function AdminSidebar({
       icon: ChartBar,
       href: "/admin/analytics",
     },
-    // {
-    //   id: "billing",
-    //   label: "Billing & Contracts",
-    //   icon: Receipt,
-    //   href: "/admin/billing",
-    // },
+    {
+      id: "billing",
+      label: "Billing",
+      icon: Receipt,
+      href: "/admin/billing",
+    },
+    {
+      id: "timesheets",
+      label: "Timesheets",
+      icon: Clock,
+      href: "/admin/timesheets",
+    },
     { id: "logs", label: "Activity Logs", icon: Activity, href: "/admin/logs" },
     // {
     //   id: "resources",

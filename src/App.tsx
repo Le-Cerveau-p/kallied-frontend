@@ -26,6 +26,7 @@ import StaffReportsPage from "./pages/staff/StaffReportsPage";
 import StaffResourcesPage from "./pages/staff/StaffResourcesPage";
 import StaffTimesheetsPage from "./pages/staff/StaffTimesheetsPage";
 import StaffUploadDataPage from "./pages/staff/StaffUploadDataPage";
+import StaffInvoicesPage from "./pages/staff/StaffInvoicesPage";
 import AdminActivityLogs from "./pages/admin/AdminActivityLogs";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminBillingContracts from "./pages/admin/AdminBillingContracts";
@@ -39,6 +40,11 @@ import AdminProfilePage from "./pages/admin/AdminProfilePage";
 import ProfileRouter from "./pages/ProfileRouter";
 import SettingsRouter from "./pages/SettingsRouter";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import ClientProfilePage from "./pages/client/ClientProfilePage";
+import StaffProfilePage from "./pages/staff/StaffProfilePage";
+import AdminTimesheetsPage from "./pages/admin/AdminTimesheetsPage";
+import ClientSettingsPage from "./pages/client/ClientSettingsPage";
+import StaffSettingsPage from "./pages/staff/StaffSettingsPage";
 
 function App() {
   return (
@@ -46,7 +52,7 @@ function App() {
       {/* {Public} */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/signup" element={<Register />} />
       <Route path="/features" element={<Features />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
@@ -89,6 +95,16 @@ function App() {
           <ProtectedRoute roles={["ADMIN"]}>
             {" "}
             <AdminBillingContracts />{" "}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/timesheets"
+        element={
+          <ProtectedRoute roles={["ADMIN"]}>
+            {" "}
+            <AdminTimesheetsPage />{" "}
           </ProtectedRoute>
         }
       />
@@ -204,7 +220,7 @@ function App() {
       />
 
       <Route
-        path="/staff/project-details"
+        path="/staff/projects/:id"
         element={
           <ProtectedRoute roles={["STAFF"]}>
             {" "}
@@ -249,6 +265,36 @@ function App() {
           <ProtectedRoute roles={["STAFF"]}>
             {" "}
             <StaffUploadDataPage />{" "}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/staff/invoices"
+        element={
+          <ProtectedRoute roles={["STAFF"]}>
+            {" "}
+            <StaffInvoicesPage />{" "}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/staff/profile"
+        element={
+          <ProtectedRoute roles={["STAFF"]}>
+            {" "}
+            <StaffProfilePage />{" "}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/staff/settings"
+        element={
+          <ProtectedRoute roles={["STAFF"]}>
+            {" "}
+            <StaffSettingsPage />{" "}
           </ProtectedRoute>
         }
       />
@@ -319,6 +365,26 @@ function App() {
           <ProtectedRoute roles={["CLIENT"]}>
             {" "}
             <ClientRequestsPage />{" "}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/client/profile"
+        element={
+          <ProtectedRoute roles={["CLIENT"]}>
+            {" "}
+            <ClientProfilePage />{" "}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/client/settings"
+        element={
+          <ProtectedRoute roles={["CLIENT"]}>
+            {" "}
+            <ClientSettingsPage />{" "}
           </ProtectedRoute>
         }
       />

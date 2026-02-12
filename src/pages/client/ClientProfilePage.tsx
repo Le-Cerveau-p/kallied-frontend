@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, FormEvent } from "react";
-import AuthNavbar from "../components/AuthNavbar";
+import AuthNavbar from "../../components/AuthNavbar";
 import {
   User,
   Mail,
@@ -12,14 +12,18 @@ import {
   CheckCircle,
   X,
 } from "lucide-react";
-import { getCurrentUser } from "../api/users";
-import Toast from "../components/Toast";
+import { getCurrentUser } from "../../api/users";
+import Toast from "../../components/Toast";
 
 interface CurrentUser {
   id: string;
   name: string;
   email: string;
   role: string;
+  companyName?: string | null;
+  department?: string | null;
+  address?: string | null;
+  phone?: string | null;
 }
 
 interface UserData {
@@ -27,6 +31,9 @@ interface UserData {
   lastName: string;
   email: string;
   phone: string;
+  companyName: string;
+  departmentName: string;
+  address: string;
   jobTitle: string;
   department: string;
   location: string;
@@ -41,12 +48,15 @@ interface FormErrors {
   jobTitle?: string;
 }
 
-export default function ProfilePage() {
+export default function ClientProfilePage() {
   const [userData, setUserData] = useState<UserData>({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
+    companyName: "",
+    departmentName: "",
+    address: "",
     jobTitle: "",
     department: "",
     location: "",
@@ -75,6 +85,10 @@ export default function ProfilePage() {
           firstName,
           lastName,
           email: user.email ?? "",
+          phone: user.phone ?? "",
+          companyName: user.companyName ?? "",
+          departmentName: user.department ?? "",
+          address: user.address ?? "",
         };
         setUserData(updated);
         setEditedData(updated);
@@ -480,8 +494,55 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Work Information Section */}
                 <div className="pt-6 border-t border-gray-200">
+                  <h3
+                    className="text-xl font-semibold mb-4"
+                    style={{ color: "#001f54" }}
+                  >
+                    Company Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label
+                        className="block mb-2 font-semibold text-sm"
+                        style={{ color: "#001f54" }}
+                      >
+                        Company Name
+                      </label>
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg text-gray-700">
+                        <Briefcase size={20} className="text-gray-400" />
+                        {userData.companyName || "N/A"}
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        className="block mb-2 font-semibold text-sm"
+                        style={{ color: "#001f54" }}
+                      >
+                        Department
+                      </label>
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg text-gray-700">
+                        <User size={20} className="text-gray-400" />
+                        {userData.departmentName || "N/A"}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label
+                        className="block mb-2 font-semibold text-sm"
+                        style={{ color: "#001f54" }}
+                      >
+                        Address
+                      </label>
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg text-gray-700">
+                        <MapPin size={20} className="text-gray-400" />
+                        {userData.address || "N/A"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Work Information Section */}
+                {/* <div className="pt-6 border-t border-gray-200">
                   <h3
                     className="text-xl font-semibold mb-4"
                     style={{ color: "#001f54" }}
@@ -489,7 +550,7 @@ export default function ProfilePage() {
                     Work Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Job Title */}
+                    {/* Job Title 
                     <div>
                       <label
                         htmlFor="jobTitle"
@@ -530,8 +591,8 @@ export default function ProfilePage() {
                       )}
                     </div>
 
-                    {/* Department (Read-only) */}
-                    <div>
+                    {/* Department (Read-only) 
+                    {/* <div>
                       <label
                         htmlFor="department"
                         className="block mb-2 font-semibold text-sm"
@@ -548,10 +609,10 @@ export default function ProfilePage() {
                       <p className="mt-1 text-xs text-gray-500">
                         Contact HR to change your department
                       </p>
-                    </div>
+                    </div> */}
 
-                    {/* Location */}
-                    <div className="md:col-span-2">
+                {/* Location */}
+                {/* <div className="md:col-span-2">
                       <label
                         htmlFor="location"
                         className="block mb-2 font-semibold text-sm"
@@ -578,12 +639,12 @@ export default function ProfilePage() {
                           {userData.location}
                         </div>
                       )}
-                    </div>
+                    </div> 
                   </div>
-                </div>
+                </div> */}
 
                 {/* Bio Section */}
-                <div className="pt-6 border-t border-gray-200">
+                {/* <div className="pt-6 border-t border-gray-200">
                   <h3
                     className="text-xl font-semibold mb-4"
                     style={{ color: "#001f54" }}
@@ -615,7 +676,7 @@ export default function ProfilePage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </div> */}
 
                 {/* Action Buttons */}
                 {isEditing && (
@@ -668,7 +729,7 @@ export default function ProfilePage() {
               <p className="text-gray-600">January 2024</p>
             </div>
 
-            <div className="bg-white rounded-xl p-6 border-2 border-gray-200">
+            {/* <div className="bg-white rounded-xl p-6 border-2 border-gray-200">
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
                 style={{ backgroundColor: "#4169e120" }}
@@ -692,7 +753,7 @@ export default function ProfilePage() {
                 Verification
               </h3>
               <p className="text-gray-600">Email Verified</p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

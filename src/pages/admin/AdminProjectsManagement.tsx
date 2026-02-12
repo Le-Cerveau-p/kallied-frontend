@@ -17,8 +17,14 @@ import {
   FileText,
   AlertCircle,
 } from "lucide-react";
-import { getAdminProjects } from "../../api/admin";
-import { getStaffUsers } from "../../api/users";
+import {
+  assignStaffToProject,
+  getAdminProjects,
+  removeStaffFromProject,
+} from "../../api/admin";
+import { createStaffProject } from "../../api/staff";
+import { getClientUsers, getStaffUsers, getCurrentUser } from "../../api/users";
+import { api } from "../../api/index";
 
 interface UserSummary {
   id: string;
@@ -40,9 +46,16 @@ interface Project {
   client: UserSummary;
   staff: ProjectStaff[];
   updates: ProjectUpdate[];
+  budget: Float32Array;
 }
 
 interface StaffUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface ClientOption {
   id: string;
   name: string;
   email: string;
@@ -56,7 +69,31 @@ interface ProjectUpdate {
   author: string;
 }
 
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
 export default function AdminProjectsManagement() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+    setLoading(false);
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "All" | "PENDING" | "IN_PROGRESS" | "COMPLETED"
@@ -69,15 +106,24 @@ export default function AdminProjectsManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [clientsList, setClientsList] = useState<ClientOption[]>([]);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectClient, setNewProjectClient] = useState("");
+  const [newProjectCategory, setNewProjectCategory] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
+  const [newProjectDeadline, setNewProjectDeadline] = useState("");
+  const [newProjectBudget, setNewProjectBudget] = useState("");
 
   useEffect(() => {
     getStaffUsers().then(setStaffUsers);
+    getClientUsers().then(setClientsList);
   }, []);
 
   useEffect(() => {
     getAdminProjects()
       .then(setProjects)
       .finally(() => setLoading(false));
+    console.log(projects);
   }, []);
 
   const formatStatus = (status: Project["status"]) => {
@@ -121,17 +167,75 @@ export default function AdminProjectsManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleApproveProject = () => {};
+  const refreshProjects = async (projectId?: string) => {
+    const updated = await getAdminProjects();
+    setProjects(updated);
+    if (projectId) {
+      const match = updated.find((p: Project) => p.id === projectId) ?? null;
+      setSelectedProject(match);
+    }
+  };
 
-  const handleCompleteProject = () => {};
+  const handleApproveProject = async () => {
+    if (!selectedProject) return;
+    await api.patch(`/projects/${selectedProject.id}/approve`);
+    setShowApproveDialog(false);
+    await refreshProjects(selectedProject.id);
+  };
 
-  const handleAssignStaff = (staffName: string) => {};
+  const handleCompleteProject = async () => {
+    if (!selectedProject) return;
+    await api.patch(`/projects/${selectedProject.id}/complete`);
+    setShowCompleteDialog(false);
+    await refreshProjects(selectedProject.id);
+  };
 
-  const handleRemoveStaff = (staffName: string) => {};
+  const handleAssignStaff = async (staffId: string) => {
+    if (!selectedProject) return;
+    await assignStaffToProject(selectedProject.id, staffId);
+    await refreshProjects(selectedProject.id);
+  };
+
+  const handleRemoveStaff = async (staffId: string) => {
+    if (!selectedProject) return;
+    await removeStaffFromProject(selectedProject.id, staffId);
+    await refreshProjects(selectedProject.id);
+  };
+
+  const handleCreateProject = async () => {
+    console.log("Creating");
+    const parsedBudget = newProjectBudget.trim()
+      ? Number(newProjectBudget)
+      : undefined;
+    const payload = {
+      name: newProjectName,
+      clientId: newProjectClient,
+      description: newProjectDescription,
+      category: newProjectCategory,
+      eCD: newProjectDeadline,
+      budget: Number.isFinite(parsedBudget) ? parsedBudget : undefined,
+    };
+
+    await createStaffProject(payload);
+    await refreshProjects();
+    setNewProjectName("");
+    setNewProjectClient("");
+    setNewProjectCategory("");
+    setNewProjectDescription("");
+    setNewProjectDeadline("");
+    setNewProjectBudget("");
+    setShowCreateProjectDialog(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <AdminSidebar activeItem="projects" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -180,7 +284,7 @@ export default function AdminProjectsManagement() {
                         {formatStatus(selectedProject.status)}
                       </span>
                       <span>•</span>
-                      <span>Budget: 0{/* {selectedProject.budget} */}</span>
+                      <span>Budget: {selectedProject.budget}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -901,18 +1005,27 @@ export default function AdminProjectsManagement() {
                 <X className="w-5 h-5" style={{ color: "#717182" }} />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-5">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-sm text-gray-700">
+                  <strong>Note:</strong> New projects require admin approval
+                  before they become active. You'll be notified once your
+                  project is approved.
+                </p>
+              </div>
               <div>
                 <label
                   className="block text-sm mb-2"
                   style={{ color: "#001f54" }}
                 >
-                  Project Name
+                  Project Name *
                 </label>
                 <input
                   type="text"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter project name"
+                  placeholder="Enter project name..."
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
                 />
               </div>
               <div>
@@ -920,64 +1033,88 @@ export default function AdminProjectsManagement() {
                   className="block text-sm mb-2"
                   style={{ color: "#001f54" }}
                 >
-                  Client Name
+                  Client Name *
                 </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter client name"
-                />
+                <select
+                  value={newProjectClient}
+                  onChange={(e) => setNewProjectClient(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  <option value="">Select a client...</option>
+                  {clientsList.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name} ({client.email})
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label
                   className="block text-sm mb-2"
                   style={{ color: "#001f54" }}
                 >
-                  Description
+                  Project Category *
+                </label>
+                <select
+                  value={newProjectCategory}
+                  onChange={(e) => setNewProjectCategory(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  <option value="">Select a category...</option>
+                  <option value="CONSTRUCTION">Construction</option>
+                  <option value="ENGINEERING">Engineering</option>
+                  <option value="PROCUREMENT">Procurement</option>
+                  <option value="CONSULTANCY">Consultancy</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="GOVERNMENT">Government</option>
+                  <option value="RESEARCH">Research</option>
+                  <option value="TECH">Tech</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  className="block text-sm mb-2"
+                  style={{ color: "#001f54" }}
+                >
+                  Project Description *
                 </label>
                 <textarea
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={4}
-                  placeholder="Enter project description"
+                  placeholder="Describe the project scope, objectives, and key deliverables..."
+                  value={newProjectDescription}
+                  onChange={(e) => setNewProjectDescription(e.target.value)}
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    className="block text-sm mb-2"
-                    style={{ color: "#001f54" }}
-                  >
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label
-                    className="block text-sm mb-2"
-                    style={{ color: "#001f54" }}
-                  >
-                    Expected Completion
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
               </div>
               <div>
                 <label
                   className="block text-sm mb-2"
                   style={{ color: "#001f54" }}
                 >
-                  Budget
+                  Target Deadline *
                 </label>
                 <input
-                  type="text"
+                  type="date"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="$0"
+                  value={newProjectDeadline}
+                  onChange={(e) => setNewProjectDeadline(e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm mb-2"
+                  style={{ color: "#001f54" }}
+                >
+                  Budget (Optional)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter project budget..."
+                  value={newProjectBudget}
+                  onChange={(e) => setNewProjectBudget(e.target.value)}
                 />
               </div>
               <div className="flex gap-3 mt-6">
@@ -991,7 +1128,14 @@ export default function AdminProjectsManagement() {
                 <button
                   className="flex-1 px-4 py-3 rounded-lg text-white hover:opacity-90 transition-opacity"
                   style={{ backgroundColor: "#4169e1" }}
-                  onClick={() => setShowCreateProjectDialog(false)}
+                  onClick={handleCreateProject}
+                  disabled={
+                    !newProjectName ||
+                    !newProjectClient ||
+                    !newProjectCategory ||
+                    !newProjectDescription ||
+                    !newProjectDeadline
+                  }
                 >
                   Create Project
                 </button>

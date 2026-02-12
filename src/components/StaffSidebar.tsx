@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -11,6 +11,14 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { getCurrentUser } from "../api/users";
+
+interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 interface MenuItem {
   id: string;
@@ -29,6 +37,29 @@ export default function StaffSidebar({
   onItemClick,
 }: StaffSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [userData, setUserData] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUser();
+  }, []);
+
+  const getInitials = (name?: string) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const menuItems: MenuItem[] = [
     {
@@ -43,14 +74,20 @@ export default function StaffSidebar({
       icon: FolderKanban,
       href: "projects",
     },
-    { id: "upload", label: "Upload Data", icon: Upload, href: "/staff/upload" },
-    { id: "reports", label: "Reports", icon: FileText, href: "/staff/reports" },
     {
-      id: "powerbi",
-      label: "Dashboards (PowerBI)",
-      icon: ChartBar,
-      href: "/staff/dashboards",
+      id: "invoices",
+      label: "Invoices",
+      icon: FileText,
+      href: "/staff/invoices",
     },
+    // { id: "upload", label: "Upload Data", icon: Upload, href: "/staff/upload" },
+    // { id: "reports", label: "Reports", icon: FileText, href: "/staff/reports" },
+    // {
+    //   id: "powerbi",
+    //   label: "Dashboards (PowerBI)",
+    //   icon: ChartBar,
+    //   href: "/staff/dashboards",
+    // },
     {
       id: "messages",
       label: "Messages",
@@ -63,12 +100,12 @@ export default function StaffSidebar({
       icon: Clock,
       href: "/staff/timesheets",
     },
-    {
-      id: "resources",
-      label: "Resources",
-      icon: BookOpen,
-      href: "/staff/resources",
-    },
+    // {
+    //   id: "resources",
+    //   label: "Resources",
+    //   icon: BookOpen,
+    //   href: "/staff/resources",
+    // },
   ];
 
   const handleItemClick = (href: string) => {
@@ -152,16 +189,18 @@ export default function StaffSidebar({
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
                 style={{ backgroundColor: "#4169e1" }}
               >
-                JS
+                {getInitials(userData?.name)}
               </div>
               <div className="flex-1 min-w-0">
                 <p
                   className="text-sm font-medium truncate"
                   style={{ color: "#001f54" }}
                 >
-                  John Smith
+                  {userData?.name ?? "—"}
                 </p>
-                <p className="text-xs text-gray-500 truncate">Staff Member</p>
+                <p className="text-xs text-gray-500 truncate">
+                  {userData?.role === "STAFF" ? "Staff Member" : userData?.role}
+                </p>
               </div>
             </div>
           </div>

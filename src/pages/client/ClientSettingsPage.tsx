@@ -288,13 +288,16 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* {notificationSuccess && (
+          {notificationSuccess && (
             <div
               className="mb-6 p-4 rounded-lg flex items-center gap-3 animate-fade-in"
-              style={{ backgroundColor: '#a7fc0020', border: '2px solid #a7fc00' }}
+              style={{
+                backgroundColor: "#a7fc0020",
+                border: "2px solid #a7fc00",
+              }}
             >
-              <CircleCheck size={24} style={{ color: '#a7fc00' }} />
-              <p className="font-semibold" style={{ color: '#001f54' }}>
+              <CircleCheck size={24} style={{ color: "#a7fc00" }} />
+              <p className="font-semibold" style={{ color: "#001f54" }}>
                 Notification preferences updated!
               </p>
             </div>
@@ -303,14 +306,17 @@ export default function SettingsPage() {
           {securitySuccess && (
             <div
               className="mb-6 p-4 rounded-lg flex items-center gap-3 animate-fade-in"
-              style={{ backgroundColor: '#a7fc0020', border: '2px solid #a7fc00' }}
+              style={{
+                backgroundColor: "#a7fc0020",
+                border: "2px solid #a7fc00",
+              }}
             >
-              <CircleCheck size={24} style={{ color: '#a7fc00' }} />
-              <p className="font-semibold" style={{ color: '#001f54' }}>
+              <CircleCheck size={24} style={{ color: "#a7fc00" }} />
+              <p className="font-semibold" style={{ color: "#001f54" }}>
                 Security settings updated!
               </p>
             </div>
-          )} */}
+          )}
 
           {/* Change Password Section */}
           <section className="bg-white rounded-2xl border-2 border-gray-200 p-8 mb-8">
@@ -489,16 +495,16 @@ export default function SettingsPage() {
           </section>
 
           {/* Notification Preferences Section */}
-          {/* <section className="bg-white rounded-2xl border-2 border-gray-200 p-8 mb-8">
+          <section className="bg-white rounded-2xl border-2 border-gray-200 p-8 mb-8">
             <div className="flex items-center gap-3 mb-6">
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: '#4169e120' }}
+                style={{ backgroundColor: "#4169e120" }}
               >
-                <Bell size={24} style={{ color: '#4169e1' }} />
+                <Bell size={24} style={{ color: "#4169e1" }} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold" style={{ color: '#001f54' }}>
+                <h2 className="text-2xl font-bold" style={{ color: "#001f54" }}>
                   Notification Preferences
                 </h2>
                 <p className="text-gray-600 text-sm">
@@ -508,12 +514,12 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-5">
-              {/* Email Notifications 
+              {/* Email Notifications */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <Mail size={20} className="text-gray-400" />
                   <div>
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       Email Notifications
                     </p>
                     <p className="text-sm text-gray-600">
@@ -523,16 +529,16 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={notifications.emailNotifications}
-                  onChange={() => toggleNotification('emailNotifications')}
+                  onChange={() => toggleNotification("emailNotifications")}
                 />
               </div>
 
-              {/* Push Notifications 
+              {/* Push Notifications */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <Bell size={20} className="text-gray-400" />
                   <div>
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       Push Notifications
                     </p>
                     <p className="text-sm text-gray-600">
@@ -542,16 +548,16 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={notifications.pushNotifications}
-                  onChange={() => toggleNotification('pushNotifications')}
+                  onChange={() => toggleNotification("pushNotifications")}
                 />
               </div>
 
-              {/* SMS Notifications 
+              {/* SMS Notifications */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <MessageSquare size={20} className="text-gray-400" />
                   <div>
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       SMS Notifications
                     </p>
                     <p className="text-sm text-gray-600">
@@ -561,16 +567,16 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={notifications.smsNotifications}
-                  onChange={() => toggleNotification('smsNotifications')}
+                  onChange={() => toggleNotification("smsNotifications")}
                 />
               </div>
 
               <div className="border-t border-gray-200 my-4"></div>
 
-              {/* Weekly Digest 
+              {/* Weekly Digest */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div>
-                  <p className="font-semibold" style={{ color: '#001f54' }}>
+                  <p className="font-semibold" style={{ color: "#001f54" }}>
                     Weekly Digest
                   </p>
                   <p className="text-sm text-gray-600">
@@ -579,14 +585,14 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={notifications.weeklyDigest}
-                  onChange={() => toggleNotification('weeklyDigest')}
+                  onChange={() => toggleNotification("weeklyDigest")}
                 />
               </div>
 
-              {/* Product Updates 
+              {/* Product Updates */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div>
-                  <p className="font-semibold" style={{ color: '#001f54' }}>
+                  <p className="font-semibold" style={{ color: "#001f54" }}>
                     Product Updates
                   </p>
                   <p className="text-sm text-gray-600">
@@ -595,15 +601,15 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={notifications.productUpdates}
-                  onChange={() => toggleNotification('productUpdates')}
+                  onChange={() => toggleNotification("productUpdates")}
                 />
               </div>
 
-              {/* Security Alerts 
+              {/* Security Alerts */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-2">
                   <div>
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       Security Alerts
                     </p>
                     <p className="text-sm text-gray-600">
@@ -613,14 +619,14 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={notifications.securityAlerts}
-                  onChange={() => toggleNotification('securityAlerts')}
+                  onChange={() => toggleNotification("securityAlerts")}
                 />
               </div>
 
-              {/* Marketing Emails 
+              {/* Marketing Emails */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div>
-                  <p className="font-semibold" style={{ color: '#001f54' }}>
+                  <p className="font-semibold" style={{ color: "#001f54" }}>
                     Marketing Emails
                   </p>
                   <p className="text-sm text-gray-600">
@@ -629,23 +635,23 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={notifications.marketingEmails}
-                  onChange={() => toggleNotification('marketingEmails')}
+                  onChange={() => toggleNotification("marketingEmails")}
                 />
               </div>
             </div>
-          </section> */}
+          </section>
 
           {/* Security Settings Section */}
-          {/* <section className="bg-white rounded-2xl border-2 border-gray-200 p-8 mb-8">
+          <section className="bg-white rounded-2xl border-2 border-gray-200 p-8 mb-8">
             <div className="flex items-center gap-3 mb-6">
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: '#4169e120' }}
+                style={{ backgroundColor: "#4169e120" }}
               >
-                <Shield size={24} style={{ color: '#4169e1' }} />
+                <Shield size={24} style={{ color: "#4169e1" }} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold" style={{ color: '#001f54' }}>
+                <h2 className="text-2xl font-bold" style={{ color: "#001f54" }}>
                   Security Settings
                 </h2>
                 <p className="text-gray-600 text-sm">
@@ -655,12 +661,12 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-5">
-              {/* Two-Factor Authentication 
+              {/* Two-Factor Authentication */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <Smartphone size={20} className="text-gray-400" />
                   <div>
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       Two-Factor Authentication
                     </p>
                     <p className="text-sm text-gray-600">
@@ -670,16 +676,16 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={security.twoFactorAuth}
-                  onChange={() => toggleSecurity('twoFactorAuth')}
+                  onChange={() => toggleSecurity("twoFactorAuth")}
                 />
               </div>
 
-              {/* Login Alerts 
+              {/* Login Alerts */}
               <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <Bell size={20} className="text-gray-400" />
                   <div>
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       Login Alerts
                     </p>
                     <p className="text-sm text-gray-600">
@@ -689,16 +695,16 @@ export default function SettingsPage() {
                 </div>
                 <ToggleSwitch
                   checked={security.loginAlerts}
-                  onChange={() => toggleSecurity('loginAlerts')}
+                  onChange={() => toggleSecurity("loginAlerts")}
                 />
               </div>
 
-              {/* Session Timeout 
+              {/* Session Timeout */}
               <div className="p-4 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3 mb-3">
                   <Key size={20} className="text-gray-400" />
                   <div>
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       Session Timeout
                     </p>
                     <p className="text-sm text-gray-600">
@@ -710,7 +716,7 @@ export default function SettingsPage() {
                   value={security.sessionTimeout}
                   onChange={(e) => handleSessionTimeoutChange(e.target.value)}
                   className="w-full md:w-auto px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-[#4169e1] outline-none transition-colors"
-                  style={{ color: '#001f54' }}
+                  style={{ color: "#001f54" }}
                 >
                   <option value="15">15 minutes</option>
                   <option value="30">30 minutes</option>
@@ -722,9 +728,9 @@ export default function SettingsPage() {
 
               <div className="border-t border-gray-200 my-4"></div>
 
-              {/* Active Sessions 
+              {/* Active Sessions */}
               <div className="p-4 rounded-lg bg-gray-50">
-                <h3 className="font-semibold mb-2" style={{ color: '#001f54' }}>
+                <h3 className="font-semibold mb-2" style={{ color: "#001f54" }}>
                   Active Sessions
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
@@ -733,32 +739,31 @@ export default function SettingsPage() {
                 <button
                   onClick={() =>
                     openModal({
-                      type: 'clear-sessions',
-                      title: 'Clear All Sessions?',
-                      message: 'This will log you out of all devices except this one. You will need to log in again on those devices.',
-                      confirmText: 'Clear Sessions',
+                      type: "clear-sessions",
+                      title: "Clear All Sessions?",
+                      message:
+                        "This will log you out of all devices except this one. You will need to log in again on those devices.",
+                      confirmText: "Clear Sessions",
                       isDangerous: false,
                     })
                   }
                   className="px-6 py-2 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
-                  style={{ backgroundColor: '#4169e1', color: 'white' }}
+                  style={{ backgroundColor: "#4169e1", color: "white" }}
                 >
                   Clear All Sessions
                 </button>
               </div>
             </div>
-          </section> */}
+          </section>
 
           {/* Danger Zone */}
-          {/* <section className="bg-white rounded-2xl border-2 border-red-200 p-8">
+          <section className="bg-white rounded-2xl border-2 border-red-200 p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-red-100">
                 <TriangleAlert size={24} className="text-red-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-red-600">
-                  Danger Zone
-                </h2>
+                <h2 className="text-2xl font-bold text-red-600">Danger Zone</h2>
                 <p className="text-gray-600 text-sm">
                   Irreversible and destructive actions
                 </p>
@@ -772,16 +777,18 @@ export default function SettingsPage() {
                     Delete Account
                   </h3>
                   <p className="text-sm text-red-700">
-                    Permanently delete your account and all associated data. This action cannot be undone.
+                    Permanently delete your account and all associated data.
+                    This action cannot be undone.
                   </p>
                 </div>
                 <button
                   onClick={() =>
                     openModal({
-                      type: 'delete-account',
-                      title: 'Delete Account?',
-                      message: 'This action is permanent and cannot be undone. All your data will be permanently deleted. Are you absolutely sure?',
-                      confirmText: 'Delete My Account',
+                      type: "delete-account",
+                      title: "Delete Account?",
+                      message:
+                        "This action is permanent and cannot be undone. All your data will be permanently deleted. Are you absolutely sure?",
+                      confirmText: "Delete My Account",
                       isDangerous: true,
                     })
                   }
@@ -792,7 +799,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
-          </section> */}
+          </section>
         </div>
       </div>
 

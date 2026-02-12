@@ -25,6 +25,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getUsers } from "../../api/admin";
+import { getCurrentUser } from "../../api/users";
 
 interface ActivityLog {
   id: string;
@@ -47,7 +48,31 @@ interface ActivityLog {
   metadata?: Record<string, any>;
 }
 
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
 export default function AdminActivityLogs() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+    setLoading(false);
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [entityFilter, setEntityFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
@@ -106,7 +131,7 @@ export default function AdminActivityLogs() {
   const mappedLogs = logs.map((log) => ({
     id: log.id,
     timestamp: new Date(log.createdAt).toLocaleString(),
-    actor: `${log.actor.firstName} ${log.actor.lastName}`,
+    actor: `${log.actor.name}`,
     actorRole: log.actor.role,
     action: formatAction(log.action),
     entity: formatEntity(log.entity),
@@ -185,7 +210,13 @@ export default function AdminActivityLogs() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <AdminSidebar activeItem="logs" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -443,7 +474,6 @@ export default function AdminActivityLogs() {
                           <td className="py-4 px-6">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <User className="w-4 h-4 text-gray-400" />
                                 <span
                                   className="font-medium text-sm"
                                   style={{ color: "#001f54" }}

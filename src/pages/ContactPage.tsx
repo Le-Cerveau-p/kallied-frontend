@@ -1,5 +1,5 @@
-import { useState, FormEvent } from 'react';
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState, FormEvent } from 'react';
+import { Link } from "react-router-dom";
 import Navbar from '../components/NavBar';
 import Footer from '../components/Footer';
 import {
@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Loader,
 } from 'lucide-react';
+import { getCompanyProfile } from '../api/public';
 
 interface FormData {
   name: string;
@@ -27,6 +28,20 @@ interface FormErrors {
   message?: string;
 }
 
+interface CompanyProfile {
+  name?: string;
+  department?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  mapLabel?: string;
+  mapAddress?: string;
+  mapUrl?: string;
+  mapEmbedUrl?: string;
+  mapLat?: number;
+  mapLng?: number;
+}
+
 export default function ContactPage() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -39,9 +54,12 @@ export default function ContactPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(
+    null,
+  );
 
   const validateEmail = (email: string): boolean => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+?/;
     return re.test(email);
   };
 
@@ -131,23 +149,41 @@ export default function ContactPage() {
     }
   };
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadProfile = async () => {
+      try {
+        const profile = await getCompanyProfile();
+        if (isMounted) {
+          setCompanyProfile(profile);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const contactInfo = [
   {
     icon: Mail,
     title: 'Email Us',
-    value: 'info@kalliedsolutions.com',
-    link: 'mailto:info@kalliedsolutions.com',
+    value: companyProfile?.email ?? 'info@kalliedsolutions.com',
+    link: `mailto:${companyProfile?.email ?? 'info@kalliedsolutions.com'}`,
   },
   {
     icon: Phone,
     title: 'Call Us',
-    value: '+234 (0) 802-000-0000',
-    link: 'tel:+2348020000000',
+    value: companyProfile?.phone ?? '+234 (0) 802-000-0000',
+    link: `tel:${(companyProfile?.phone ?? '+234 (0) 802-000-0000').replace(/\s+/g, '')}`,
   },
   {
     icon: MapPin,
     title: 'Visit Us',
-    value: 'Abuja, Nigeria (Head Office)',
+    value: companyProfile?.address ?? 'Abuja, Nigeria (Head Office)',
     link: '#map',
   },
   {
@@ -459,21 +495,37 @@ export default function ContactPage() {
               }}
               id="map"
             >
-              <div className="text-center text-white">
-                <MapPin size={64} className="mx-auto mb-4 opacity-80" />
-                <h3 className="text-2xl font-bold mb-2">Our Location</h3>
-                <p className="text-lg opacity-90">123 Tech Street</p>
-                <p className="text-lg opacity-90">Abuja, Federal Capital Territory Nigeria</p>
-                <Link
-                  to="https://maps.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block mt-6 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
-                  style={{ backgroundColor: '#a7fc00', color: '#001f54' }}
-                >
-                  View on Google Maps
-                </Link>
-              </div>
+              {companyProfile?.mapEmbedUrl ? (
+                <iframe
+                  title="Company Location Map"
+                  src={companyProfile.mapEmbedUrl}
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              ) : (
+                <div className="text-center text-white">
+                  <MapPin size={64} className="mx-auto mb-4 opacity-80" />
+                  <h3 className="text-2xl font-bold mb-2">
+                    {companyProfile?.mapLabel ?? 'Our Location'}
+                  </h3>
+                  <p className="text-lg opacity-90">
+                    {companyProfile?.mapAddress ?? '123 Tech Street'}
+                  </p>
+                  <p className="text-lg opacity-90">
+                    {companyProfile?.address ?? 'Abuja, Federal Capital Territory Nigeria'}
+                  </p>
+                  <Link
+                    to={companyProfile?.mapUrl ?? 'https://maps.google.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-6 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
+                    style={{ backgroundColor: '#a7fc00', color: '#001f54' }}
+                  >
+                    View on Google Maps
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* Office Info */}

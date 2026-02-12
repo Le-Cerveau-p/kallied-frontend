@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AuthNavbar from "../../components/AuthNavbar";
 import ClientSidebar from "../../components/ClientSidebar";
 import {
@@ -14,183 +14,130 @@ import {
   Filter,
   Search,
 } from "lucide-react";
+import { getClientReports } from "../../api/client";
+import { getCurrentUser } from "../../api/users";
 
 interface Report {
-  id: number;
+  id: string;
   name: string;
   category: string;
   version: string;
-  uploadDate: string;
-  fileType: "pdf" | "xlsx" | "docx" | "png" | "jpg" | "zip" | "other";
-  fileSize: string;
+  uploadDate: string | Date;
+  fileType:
+    | "pdf"
+    | "xlsx"
+    | "docx"
+    | "png"
+    | "jpg"
+    | "jpeg"
+    | "zip"
+    | "other";
+  fileSize: string | null;
   projectName: string;
   canPreview: boolean;
+  fileUrl: string;
+}
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export default function ClientReportsPage() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [allReports, setAllReports] = useState<Report[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState("All Projects");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
 
-  // Mock reports data
-  const allReports: Report[] = [
-    {
-      id: 1,
-      name: "Website Redesign - Final Mockups",
-      category: "Design Assets",
-      version: "v2.1",
-      uploadDate: "Jan 15, 2026",
-      fileType: "pdf",
-      fileSize: "12.4 MB",
-      projectName: "Website Redesign",
-      canPreview: true,
-    },
-    {
-      id: 2,
-      name: "Project Completion Report",
-      category: "Final Reports",
-      version: "v1.0",
-      uploadDate: "Jan 10, 2026",
-      fileType: "pdf",
-      fileSize: "2.8 MB",
-      projectName: "Website Redesign",
-      canPreview: true,
-    },
-    {
-      id: 3,
-      name: "Analytics Dashboard - Q4 2025",
-      category: "Analytics",
-      version: "v1.3",
-      uploadDate: "Jan 8, 2026",
-      fileType: "xlsx",
-      fileSize: "856 KB",
-      projectName: "Website Redesign",
-      canPreview: false,
-    },
-    {
-      id: 4,
-      name: "Mobile App - Technical Specification",
-      category: "Documentation",
-      version: "v3.0",
-      uploadDate: "Jan 5, 2026",
-      fileType: "docx",
-      fileSize: "1.2 MB",
-      projectName: "Mobile App Development",
-      canPreview: true,
-    },
-    {
-      id: 5,
-      name: "Brand Guidelines Complete Package",
-      category: "Design Assets",
-      version: "v1.0",
-      uploadDate: "Jan 3, 2026",
-      fileType: "zip",
-      fileSize: "45.6 MB",
-      projectName: "Brand Identity Package",
-      canPreview: false,
-    },
-    {
-      id: 6,
-      name: "Logo Variations - Final",
-      category: "Design Assets",
-      version: "v2.0",
-      uploadDate: "Dec 28, 2025",
-      fileType: "png",
-      fileSize: "3.4 MB",
-      projectName: "Brand Identity Package",
-      canPreview: true,
-    },
-    {
-      id: 7,
-      name: "E-commerce Performance Report - December",
-      category: "Analytics",
-      version: "v1.0",
-      uploadDate: "Dec 31, 2025",
-      fileType: "pdf",
-      fileSize: "4.1 MB",
-      projectName: "E-commerce Platform",
-      canPreview: true,
-    },
-    {
-      id: 8,
-      name: "Payment Integration Documentation",
-      category: "Documentation",
-      version: "v1.5",
-      uploadDate: "Dec 20, 2025",
-      fileType: "pdf",
-      fileSize: "1.9 MB",
-      projectName: "E-commerce Platform",
-      canPreview: true,
-    },
-    {
-      id: 9,
-      name: "Marketing Campaign Final Report",
-      category: "Final Reports",
-      version: "v1.0",
-      uploadDate: "Dec 31, 2025",
-      fileType: "pdf",
-      fileSize: "6.7 MB",
-      projectName: "Marketing Campaign",
-      canPreview: true,
-    },
-    {
-      id: 10,
-      name: "Campaign Analytics Spreadsheet",
-      category: "Analytics",
-      version: "v2.1",
-      uploadDate: "Dec 31, 2025",
-      fileType: "xlsx",
-      fileSize: "2.3 MB",
-      projectName: "Marketing Campaign",
-      canPreview: false,
-    },
-    {
-      id: 11,
-      name: "CRM Migration Plan",
-      category: "Documentation",
-      version: "v1.2",
-      uploadDate: "Jan 12, 2026",
-      fileType: "docx",
-      fileSize: "980 KB",
-      projectName: "CRM System Integration",
-      canPreview: true,
-    },
-    {
-      id: 12,
-      name: "User Training Materials",
-      category: "Documentation",
-      version: "v1.0",
-      uploadDate: "Jan 7, 2026",
-      fileType: "pdf",
-      fileSize: "8.2 MB",
-      projectName: "CRM System Integration",
-      canPreview: true,
-    },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    const loadData = async () => {
+      try {
+        const [reports, user] = await Promise.all([
+          getClientReports(),
+          getCurrentUser(),
+        ]);
+        if (isMounted) {
+          setAllReports(reports);
+          setUserData(user);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const allowedCategories = useMemo(
+    () => ["Report", "Contract", "Analytics"],
+    [],
+  );
+
+  const formatDate = (value: string | Date) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString();
+  };
 
   // Get unique projects and categories
-  const projects = [
-    "All Projects",
-    ...Array.from(new Set(allReports.map((r) => r.projectName))),
-  ];
-  const categories = [
-    "All Categories",
-    ...Array.from(new Set(allReports.map((r) => r.category))),
-  ];
+  const projects = useMemo(
+    () => [
+      "All Projects",
+      ...Array.from(new Set(allReports.map((r) => r.projectName))),
+    ],
+    [allReports],
+  );
+  const categories = useMemo(
+    () => [
+      "All Categories",
+      ...Array.from(
+        new Set(
+          allReports
+            .map((r) => r.category)
+            .filter((category) => allowedCategories.includes(category)),
+        ),
+      ),
+    ],
+    [allReports, allowedCategories],
+  );
 
   // Filter reports
-  const filteredReports = allReports.filter((report) => {
-    const matchesSearch =
-      report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesProject =
-      selectedProject === "All Projects" ||
-      report.projectName === selectedProject;
-    const matchesCategory =
-      selectedCategory === "All Categories" ||
-      report.category === selectedCategory;
-    return matchesSearch && matchesProject && matchesCategory;
-  });
+  const filteredReports = useMemo(
+    () =>
+      allReports.filter((report) => {
+        const matchesSearch =
+          report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          report.category.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesProject =
+          selectedProject === "All Projects" ||
+          report.projectName === selectedProject;
+        const matchesCategory =
+          selectedCategory === "All Categories" ||
+          report.category === selectedCategory;
+        const matchesAllowedCategory = allowedCategories.includes(
+          report.category,
+        );
+        return (
+          matchesSearch &&
+          matchesProject &&
+          matchesCategory &&
+          matchesAllowedCategory
+        );
+      }),
+    [
+      allReports,
+      searchTerm,
+      selectedProject,
+      selectedCategory,
+      allowedCategories,
+    ],
+  );
 
   const getFileIcon = (fileType: string) => {
     switch (fileType) {
@@ -201,6 +148,7 @@ export default function ClientReportsPage() {
         return <FileSpreadsheet className="w-5 h-5" />;
       case "png":
       case "jpg":
+      case "jpeg":
         return <FileImage className="w-5 h-5" />;
       case "zip":
         return <FileCode className="w-5 h-5" />;
@@ -219,6 +167,7 @@ export default function ClientReportsPage() {
         return "#2563eb"; // blue
       case "png":
       case "jpg":
+      case "jpeg":
         return "#9333ea"; // purple
       case "zip":
         return "#ea580c"; // orange
@@ -229,7 +178,13 @@ export default function ClientReportsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar currentPage="client" />
+      <AuthNavbar
+        currentPage="client"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <ClientSidebar activeItem="reports" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -452,8 +407,8 @@ export default function ClientReportsPage() {
                                       {report.name}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                      {report.fileType.toUpperCase()} •{" "}
-                                      {report.fileSize}
+                                      {report.fileType.toUpperCase()} â€¢{" "}
+                                      {report.fileSize ?? "N/A"}
                                     </p>
                                   </div>
                                 </div>
@@ -477,13 +432,16 @@ export default function ClientReportsPage() {
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <Calendar className="w-4 h-4 text-gray-400" />
-                                  {report.uploadDate}
+                                  {formatDate(report.uploadDate)}
                                 </div>
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex items-center justify-end gap-2">
                                   {report.canPreview && (
                                     <button
+                                      onClick={() =>
+                                        window.open(report.fileUrl, "_blank")
+                                      }
                                       className="p-2 rounded-lg transition-all hover:bg-gray-100"
                                       title="Preview"
                                     >
@@ -491,6 +449,9 @@ export default function ClientReportsPage() {
                                     </button>
                                   )}
                                   <button
+                                    onClick={() =>
+                                      window.open(report.fileUrl, "_blank")
+                                    }
                                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all hover:shadow-md"
                                     style={{
                                       backgroundColor: "#4169e1",
@@ -533,14 +494,14 @@ export default function ClientReportsPage() {
                                 {report.name}
                               </h3>
                               <p className="text-xs text-gray-500 mb-2">
-                                {report.fileType.toUpperCase()} •{" "}
-                                {report.fileSize}
+                                {report.fileType.toUpperCase()} â€¢{" "}
+                                {report.fileSize ?? "N/A"}
                               </p>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xs text-gray-600">
                                   {report.category}
                                 </span>
-                                <span className="text-gray-300">•</span>
+                                <span className="text-gray-300">â€¢</span>
                                 <span
                                   className="px-2 py-0.5 rounded text-xs font-medium"
                                   style={{
@@ -550,9 +511,9 @@ export default function ClientReportsPage() {
                                 >
                                   {report.version}
                                 </span>
-                                <span className="text-gray-300">•</span>
+                                <span className="text-gray-300">â€¢</span>
                                 <span className="text-xs text-gray-500">
-                                  {report.uploadDate}
+                                  {formatDate(report.uploadDate)}
                                 </span>
                               </div>
                             </div>
@@ -560,6 +521,9 @@ export default function ClientReportsPage() {
                           <div className="flex items-center gap-2">
                             {report.canPreview && (
                               <button
+                                onClick={() =>
+                                  window.open(report.fileUrl, "_blank")
+                                }
                                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border rounded-lg font-medium transition-all"
                                 style={{
                                   borderColor: "#4169e1",
@@ -571,6 +535,9 @@ export default function ClientReportsPage() {
                               </button>
                             )}
                             <button
+                              onClick={() =>
+                                window.open(report.fileUrl, "_blank")
+                              }
                               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all"
                               style={{
                                 backgroundColor: "#4169e1",

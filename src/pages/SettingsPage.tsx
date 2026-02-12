@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import AuthNavbar from '../components/AuthNavbar';
 import {
   Lock,
@@ -16,6 +16,14 @@ import {
   X,
   Trash2,
 } from 'lucide-react';
+import { getCurrentUser } from '../api/users';
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 interface NotificationSettings {
   emailNotifications: boolean;
@@ -55,6 +63,7 @@ interface ModalState {
 }
 
 export default function SettingsPage() {
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [notifications, setNotifications] = useState<NotificationSettings>({
     emailNotifications: true,
     pushNotifications: true,
@@ -96,6 +105,18 @@ export default function SettingsPage() {
   });
 
   const [isModalProcessing, setIsModalProcessing] = useState(false);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUser();
+  }, []);
 
   const validatePassword = (): PasswordErrors => {
     const errors: PasswordErrors = {};
@@ -226,9 +247,8 @@ export default function SettingsPage() {
       {/* Dashboard Navbar */}
       <AuthNavbar
         currentPage="settings"
-        userName="John Doe"
-        userEmail="john.doe@example.com"
-        userAvatar=""
+        userName={userData?.name}
+        userEmail={userData?.email}
         notificationCount={3}
       />
 

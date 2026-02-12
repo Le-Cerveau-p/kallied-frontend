@@ -21,16 +21,24 @@ import {
   getUserProjects,
   getUsers,
   removeStaffFromProject,
+  createAdminUser,
+  requestAdminOtp,
+  verifyAdminOtp,
+  updateAdminUser,
+  updateAdminUserRole,
+  updateAdminUserStatus,
 } from "../../api/admin";
 import { adminSocket } from "../../socket/adminSocket";
+import { getCurrentUser } from "../../api/users";
+import Toast from "../../components/Toast";
 
 interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: "ADMIN" | "STAFF" | "CLIENT";
-  status: "Active" | "Disabled";
-  joinDate: string;
+  status: "ENABLED" | "DISABLED";
+  createdAt: string;
 }
 
 type ActionType = "add" | "edit" | "disable" | "enable" | "role-change";
@@ -42,6 +50,23 @@ interface PendingAction {
 }
 
 export default function AdminUserManagement() {
+  const [userData, setUserData] = useState<User | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+    setLoading(false);
+  }, []);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<
     "All" | "ADMIN" | "STAFF" | "CLIENT"
@@ -54,23 +79,30 @@ export default function AdminUserManagement() {
 
   // OTP States
   const [showOTPDialog, setShowOTPDialog] = useState(false);
-  const [generatedOTP, setGeneratedOTP] = useState("");
   const [enteredOTP, setEnteredOTP] = useState("");
+  const [otpRecipientEmail, setOtpRecipientEmail] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpTimer, setOtpTimer] = useState(300); // 5 minutes in seconds
   const [isOTPExpired, setIsOTPExpired] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,
   );
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Form States
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<"ADMIN" | "STAFF" | "CLIENT">(
     "CLIENT",
   );
+  const [newUserCompanyName, setNewUserCompanyName] = useState("");
+  const [newUserDepartment, setNewUserDepartment] = useState("");
+  const [newUserAddress, setNewUserAddress] = useState("");
+  const [newUserPhone, setNewUserPhone] = useState("");
   const [editUserName, setEditUserName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
   const [newRoleSelection, setNewRoleSelection] = useState<
@@ -78,7 +110,13 @@ export default function AdminUserManagement() {
   >("STAFF");
 
   // Authorized email for OTP
-  const AUTHORIZED_EMAIL = "security@company.com";
+  const [authorizedEmail, setAuthorizedEmail] = useState(
+    "techcity025@gmail.com",
+  );
+  const approvedOtpRecipients = [
+    "aremupp@gmail.com",
+    "lecerveau.techcity@gmail.com",
+  ];
 
   // Mock user data
   const [users, setUsers] = useState([]);
@@ -111,7 +149,7 @@ export default function AdminUserManagement() {
   // OTP Timer countdown
   useEffect(() => {
     let interval: number | undefined;
-    if (showOTPDialog && otpTimer > 0 && !isOTPExpired) {
+    if (showOTPDialog && otpSent && otpTimer > 0 && !isOTPExpired) {
       interval = setInterval(() => {
         setOtpTimer((prev) => {
           if (prev <= 1) {
@@ -125,123 +163,151 @@ export default function AdminUserManagement() {
     return () => clearInterval(interval);
   }, [showOTPDialog, otpTimer, isOTPExpired]);
 
-  // Generate random 6-digit OTP
-  const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
   // Initialize OTP request
-  const requestOTP = (action: PendingAction) => {
-    const otp = generateOTP();
-    setGeneratedOTP(otp);
+  const requestOTP = async (action: PendingAction) => {
     setPendingAction(action);
     setEnteredOTP("");
     setOtpError("");
     setOtpTimer(300); // Reset to 5 minutes
     setIsOTPExpired(false);
+    setOtpSent(false);
+    setOtpRecipientEmail("");
     setShowOTPDialog(true);
-
-    // In a real app, this would send the OTP to the authorized email via API
-    console.log(`OTP ${otp} sent to ${AUTHORIZED_EMAIL}`);
   };
 
-  // Resend OTP
-  const handleResendOTP = () => {
-    const newOTP = generateOTP();
-    setGeneratedOTP(newOTP);
-    setEnteredOTP("");
-    setOtpError("");
-    setOtpTimer(300);
-    setIsOTPExpired(false);
-    console.log(`New OTP ${newOTP} sent to ${AUTHORIZED_EMAIL}`);
-  };
+  const isApprovedRecipient = (email: string) =>
+    approvedOtpRecipients.includes(email.toLowerCase());
 
-  // Verify OTP and execute action
-  const verifyOTPAndExecute = () => {
-    if (enteredOTP !== generatedOTP) {
-      setOtpError("Invalid OTP. Please try again.");
+  const sendOtpNow = async () => {
+    const email = otpRecipientEmail.trim().toLowerCase();
+    if (!email) {
+      setOtpError("Please enter an approved email.");
+      return;
+    }
+    if (!isApprovedRecipient(email)) {
+      setToastMessage("Email entered is not approved.");
       return;
     }
 
+    setOtpError("");
+    setOtpTimer(300);
+    setIsOTPExpired(false);
+
+    try {
+      const response = await requestAdminOtp("USER_MANAGEMENT", email);
+      if (response?.email) {
+        setAuthorizedEmail(response.email);
+      } else {
+        setAuthorizedEmail(email);
+      }
+      setOtpSent(true);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || "Failed to send OTP.";
+      setOtpError(message);
+      setOtpSent(false);
+    }
+  };
+
+  // Resend OTP
+  const handleResendOTP = async () => {
+    setEnteredOTP("");
+    await sendOtpNow();
+  };
+
+  // Verify OTP and execute action
+  const verifyOTPAndExecute = async () => {
+    if (!otpSent) {
+      setOtpError("Send the OTP before verifying.");
+      return;
+    }
     if (isOTPExpired) {
       setOtpError("OTP has expired. Please request a new one.");
       return;
     }
 
+    try {
+      await verifyAdminOtp(enteredOTP, "USER_MANAGEMENT");
+    } catch (error: any) {
+      const message = error?.response?.data?.message || "Invalid OTP.";
+      setOtpError(message);
+      return;
+    }
+
     // OTP is valid, execute the pending action
     if (pendingAction) {
-      executeAction(pendingAction);
+      await executeAction(pendingAction);
     }
 
     // Close OTP dialog
     setShowOTPDialog(false);
     setEnteredOTP("");
     setOtpError("");
+    setOtpSent(false);
   };
 
   // Execute the actual action after OTP verification
-  const executeAction = (action: PendingAction) => {
-    switch (action.type) {
-      case "add":
-        const newUser: User = {
-          id: users.length + 1,
-          name: action.data.name,
-          email: action.data.email,
-          role: action.data.role,
-          status: "Active",
-          joinDate: new Date().toLocaleDateString("en-US", {
-            month: "short",
-            year: "numeric",
-          }),
-        };
-        setUsers([...users, newUser]);
-        setShowAddUserDialog(false);
-        showSuccess(`User "${action.data.name}" has been added successfully.`);
-        resetAddUserForm();
-        break;
+  const executeAction = async (action: PendingAction) => {
+    try {
+      switch (action.type) {
+        case "add":
+          await createAdminUser({
+            name: action.data.name,
+            email: action.data.email,
+            password: action.data.password,
+            role: action.data.role,
+            companyName: action.data.companyName,
+            department: action.data.department,
+            address: action.data.address,
+            phone: action.data.phone,
+          });
+          setUsers(await getUsers());
+          setShowAddUserDialog(false);
+          showSuccess(
+            `User "${action.data.name}" has been added successfully.`,
+          );
+          resetAddUserForm();
+          break;
 
-      case "edit":
-        setUsers(
-          users.map((u) =>
-            u.id === action.user?.id
-              ? { ...u, name: action.data.name, email: action.data.email }
-              : u,
-          ),
-        );
-        setShowEditDialog(false);
-        showSuccess(
-          `User "${action.data.name}" has been updated successfully.`,
-        );
-        break;
+        case "edit":
+          await updateAdminUser(action.user?.id, {
+            name: action.data.name,
+            email: action.data.email,
+          });
+          setUsers(await getUsers());
+          setShowEditDialog(false);
+          showSuccess(
+            `User "${action.data.name}" has been updated successfully.`,
+          );
+          break;
 
-      case "disable":
-      case "enable":
-        setUsers(
-          users.map((u) =>
-            u.id === action.user?.id
-              ? { ...u, status: u.status === "Active" ? "Disabled" : "Active" }
-              : u,
-          ),
-        );
-        setShowDisableDialog(false);
-        showSuccess(
-          `User "${action.user?.name}" has been ${
-            action.user?.status === "Active" ? "disabled" : "enabled"
-          } successfully.`,
-        );
-        break;
+        case "disable":
+        case "enable":
+          await updateAdminUserStatus(
+            action.user?.id,
+            action.user?.status === "ENABLED" ? "DISABLED" : "ENABLED",
+          );
+          setUsers(await getUsers());
+          setShowDisableDialog(false);
+          showSuccess(
+            `User "${action.user?.name}" has been ${
+              action.user?.status === "ENABLED" ? "disabled" : "enabled"
+            } successfully.`,
+          );
+          break;
 
-      case "role-change":
-        setUsers(
-          users.map((u) =>
-            u.id === action.user?.id ? { ...u, role: action.data.newRole } : u,
-          ),
-        );
-        setShowRoleChangeDialog(false);
-        showSuccess(
-          `User "${action.user?.name}" role has been changed to ${action.data.newRole}.`,
-        );
-        break;
+        case "role-change":
+          await updateAdminUserRole(action.user?.id, action.data.newRole);
+          setUsers(await getUsers());
+          setShowRoleChangeDialog(false);
+          showSuccess(
+            `User "${action.user?.name}" role has been changed to ${action.data.newRole}.`,
+          );
+          break;
+      }
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Action failed. Please try again.";
+      setToastMessage(message);
     }
 
     setPendingAction(null);
@@ -257,7 +323,12 @@ export default function AdminUserManagement() {
   const resetAddUserForm = () => {
     setNewUserName("");
     setNewUserEmail("");
+    setNewUserPassword("");
     setNewUserRole("CLIENT");
+    setNewUserCompanyName("");
+    setNewUserDepartment("");
+    setNewUserAddress("");
+    setNewUserPhone("");
   };
 
   const getRoleColor = (role: string) => {
@@ -274,7 +345,7 @@ export default function AdminUserManagement() {
   };
 
   const getStatusColor = (status: string) => {
-    return status === "Active"
+    return status === "ENABLED"
       ? { bg: "#f1f8e9", text: "#558b2f" }
       : { bg: "#f5f5f5", text: "#717182" };
   };
@@ -289,19 +360,28 @@ export default function AdminUserManagement() {
 
   // Handler functions that request OTP
   const handleAddUser = () => {
-    if (!newUserName || !newUserEmail) {
-      alert("Please fill in all required fields.");
+    if (!newUserName || !newUserEmail || !newUserPassword) {
+      setToastMessage("Please fill in all required fields.");
       return;
     }
     requestOTP({
       type: "add",
-      data: { name: newUserName, email: newUserEmail, role: newUserRole },
+      data: {
+        name: newUserName,
+        email: newUserEmail,
+        password: newUserPassword,
+        role: newUserRole,
+        companyName: newUserCompanyName || undefined,
+        department: newUserDepartment || undefined,
+        address: newUserAddress || undefined,
+        phone: newUserPhone || undefined,
+      },
     });
   };
 
   const handleSaveEdit = () => {
     if (!editUserName || !editUserEmail) {
-      alert("Please fill in all required fields.");
+      setToastMessage("Please fill in all required fields.");
       return;
     }
     requestOTP({
@@ -318,7 +398,7 @@ export default function AdminUserManagement() {
 
   const confirmDisableUser = () => {
     requestOTP({
-      type: selectedUser?.status === "Active" ? "disable" : "enable",
+      type: selectedUser?.status === "ENABLED" ? "disable" : "enable",
       user: selectedUser!,
     });
   };
@@ -361,7 +441,20 @@ export default function AdminUserManagement() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone="error"
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <AdminSidebar activeItem="users" />
 
       <main className="lg:pl-64 pt-16">
@@ -457,7 +550,7 @@ export default function AdminUserManagement() {
                 <h3 className="text-gray-600 text-sm">Active Users</h3>
               </div>
               <p className="text-2xl" style={{ color: "#001f54" }}>
-                {users.filter((u) => u.status === "Active").length}
+                {users.filter((u) => u.status === "ENABLED").length}
               </p>
             </div>
 
@@ -472,7 +565,7 @@ export default function AdminUserManagement() {
                 <h3 className="text-gray-600 text-sm">Disabled Users</h3>
               </div>
               <p className="text-2xl" style={{ color: "#001f54" }}>
-                {users.filter((u) => u.status === "Disabled").length}
+                {users.filter((u) => u.status === "DISABLED").length}
               </p>
             </div>
           </div>
@@ -562,7 +655,7 @@ export default function AdminUserManagement() {
                               color: getStatusColor(user.status).text,
                             }}
                           >
-                            {/* {user.status} */}Active
+                            {user.status === "ENABLED" ? "Active" : "Disabled"}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-gray-600 text-sm">
@@ -581,18 +674,18 @@ export default function AdminUserManagement() {
                             <button
                               onClick={() => handleDisableUser(user)}
                               className={`p-2 rounded-lg transition-colors ${
-                                user.status === "Active"
+                                user.status === "ENABLED"
                                   ? "hover:bg-red-50"
                                   : "hover:bg-green-50"
                               }`}
                               title={
-                                user.status === "Active"
+                                user.status === "ENABLED"
                                   ? "Disable user"
                                   : "Enable user"
                               }
                               style={{
                                 color:
-                                  user.status === "Active"
+                                  user.status === "ENABLED"
                                     ? "#d4183d"
                                     : "#558b2f",
                               }}
@@ -638,7 +731,27 @@ export default function AdminUserManagement() {
                 </p>
               </div>
               <p className="text-sm font-medium" style={{ color: "#4169e1" }}>
-                {AUTHORIZED_EMAIL}
+                {otpSent ? authorizedEmail : "Not sent yet"}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm mb-2 text-gray-700">
+                Approved Recipient Email
+              </label>
+              <input
+                type="email"
+                value={otpRecipientEmail}
+                onChange={(e) => {
+                  setOtpRecipientEmail(e.target.value);
+                  setOtpError("");
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="authorized@gmail.com"
+                disabled={otpSent}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Approved emails: aremupp@gmail.com, lecerveau.techcity@gmail.com
               </p>
             </div>
 
@@ -656,7 +769,7 @@ export default function AdminUserManagement() {
                 }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
                 placeholder="000000"
-                disabled={isOTPExpired}
+                disabled={isOTPExpired || !otpSent}
               />
             </div>
 
@@ -675,13 +788,18 @@ export default function AdminUserManagement() {
                     otpTimer < 60 ? "text-red-600 font-medium" : "text-gray-600"
                   }`}
                 >
-                  {isOTPExpired ? "Expired" : formatTime(otpTimer)}
+                  {!otpSent
+                    ? "Not started"
+                    : isOTPExpired
+                      ? "Expired"
+                      : formatTime(otpTimer)}
                 </span>
               </div>
               <button
                 onClick={handleResendOTP}
-                className="text-sm flex items-center gap-1 hover:opacity-80 transition-opacity"
+                className="text-sm flex items-center gap-1 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ color: "#4169e1" }}
+                disabled={!otpRecipientEmail.trim()}
               >
                 <RefreshCw className="w-4 h-4" />
                 Resend OTP
@@ -695,6 +813,7 @@ export default function AdminUserManagement() {
                   setEnteredOTP("");
                   setOtpError("");
                   setPendingAction(null);
+                  setOtpSent(false);
                 }}
                 className="flex-1 px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
                 style={{ color: "#001f54" }}
@@ -703,13 +822,22 @@ export default function AdminUserManagement() {
               </button>
               <button
                 onClick={verifyOTPAndExecute}
-                disabled={enteredOTP.length !== 6 || isOTPExpired}
+                disabled={enteredOTP.length !== 6 || isOTPExpired || !otpSent}
                 className="flex-1 px-4 py-3 rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: "#4169e1" }}
               >
                 Verify & Proceed
               </button>
             </div>
+            {!otpSent && (
+              <button
+                onClick={sendOtpNow}
+                className="w-full mt-3 px-4 py-3 rounded-lg text-white hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: "#001f54" }}
+              >
+                Send OTP
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -717,7 +845,7 @@ export default function AdminUserManagement() {
       {/* Add User Dialog */}
       {showAddUserDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 animate-scale-in">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6 animate-scale-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl" style={{ color: "#001f54" }}>
                 Add New User
@@ -768,6 +896,21 @@ export default function AdminUserManagement() {
                   className="block text-sm mb-2"
                   style={{ color: "#001f54" }}
                 >
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Set a temporary password"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm mb-2"
+                  style={{ color: "#001f54" }}
+                >
                   Role
                 </label>
                 <select
@@ -775,10 +918,70 @@ export default function AdminUserManagement() {
                   onChange={(e) => setNewUserRole(e.target.value as any)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Client">Client</option>
-                  <option value="Staff">Staff</option>
-                  <option value="Admin">Admin</option>
+                  <option value="CLIENT">Client</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="ADMIN">Admin</option>
                 </select>
+              </div>
+              <div>
+                <label
+                  className="block text-sm mb-2"
+                  style={{ color: "#001f54" }}
+                >
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  value={newUserCompanyName}
+                  onChange={(e) => setNewUserCompanyName(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Client Company Name"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm mb-2"
+                  style={{ color: "#001f54" }}
+                >
+                  Department
+                </label>
+                <input
+                  type="text"
+                  value={newUserDepartment}
+                  onChange={(e) => setNewUserDepartment(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Client Department"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm mb-2"
+                  style={{ color: "#001f54" }}
+                >
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={newUserAddress}
+                  onChange={(e) => setNewUserAddress(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="456 Client Avenue, Floor 5"
+                />
+              </div>
+              <div>
+                <label
+                  className="block text-sm mb-2"
+                  style={{ color: "#001f54" }}
+                >
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  value={newUserPhone}
+                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="(555) 123-4567"
+                />
               </div>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
                 <Lock className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -890,14 +1093,14 @@ export default function AdminUserManagement() {
                 className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
                 style={{
                   backgroundColor:
-                    selectedUser.status === "Active" ? "#fce4ec" : "#f1f8e9",
+                    selectedUser.status === "ENABLED" ? "#fce4ec" : "#f1f8e9",
                 }}
               >
                 <UserX
                   className="w-6 h-6"
                   style={{
                     color:
-                      selectedUser.status === "Active" ? "#d4183d" : "#558b2f",
+                      selectedUser.status === "ENABLED" ? "#d4183d" : "#558b2f",
                   }}
                 />
               </div>
@@ -905,19 +1108,19 @@ export default function AdminUserManagement() {
                 className="text-xl text-center mb-2"
                 style={{ color: "#001f54" }}
               >
-                {selectedUser.status === "Active"
+                {selectedUser.status === "ENABLED"
                   ? "Disable User"
                   : "Enable User"}
               </h2>
               <p className="text-center text-gray-600 text-sm">
                 Are you sure you want to{" "}
-                {selectedUser.status === "Active" ? "disable" : "enable"}{" "}
+                {selectedUser.status === "ENABLED" ? "disable" : "enable"}{" "}
                 <span className="font-medium" style={{ color: "#001f54" }}>
                   {selectedUser.name}
                 </span>
                 ?
               </p>
-              {selectedUser.status === "Active" && (
+              {selectedUser.status === "ENABLED" && (
                 <p className="text-center text-sm text-gray-500 mt-2">
                   This user will no longer be able to access the system.
                 </p>
@@ -941,11 +1144,11 @@ export default function AdminUserManagement() {
                 className="flex-1 px-4 py-2 rounded-lg text-white hover:opacity-90 transition-opacity"
                 style={{
                   backgroundColor:
-                    selectedUser.status === "Active" ? "#d4183d" : "#32cd32",
+                    selectedUser.status === "ENABLED" ? "#d4183d" : "#32cd32",
                 }}
                 onClick={confirmDisableUser}
               >
-                {selectedUser.status === "Active" ? "Disable" : "Enable"}
+                {selectedUser.status === "ENABLED" ? "Disable" : "Enable"}
               </button>
             </div>
           </div>

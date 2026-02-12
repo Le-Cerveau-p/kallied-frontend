@@ -1,7 +1,29 @@
+import { useEffect, useState } from 'react';
 import AuthNavbar from '../components/AuthNavbar';
 import { LayoutDashboard, Users, TrendingUp, DollarSign } from 'lucide-react';
+import { getCurrentUser } from '../api/users';
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 export default function DashboardPage() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUser();
+  }, []);
   // Sample data
   const stats = [
     {
@@ -13,7 +35,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Revenue',
-      value: '$45,231',
+      value: '?45,231',
       change: '+8.2%',
       icon: DollarSign,
       color: '#a7fc00',
@@ -66,8 +88,8 @@ export default function DashboardPage() {
       {/* Dashboard Navbar */}
       <AuthNavbar
         currentPage="dashboard"
-        userName="John Doe"
-        userEmail="john.doe@example.com"
+        userName={userData?.name}
+        userEmail={userData?.email}
         notificationCount={3}
       />
 
@@ -79,7 +101,9 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold" style={{ color: '#001f54' }}>
               Dashboard
             </h1>
-            <p className="text-gray-600 mt-2">Welcome back, John! Here's what's happening today.</p>
+            <p className="text-gray-600 mt-2">
+              Welcome back{userData?.name ? `, ${userData.name.split(' ')[0]}` : ''}! Here's what's happening today.
+            </p>
           </div>
 
           {/* Stats Grid */}

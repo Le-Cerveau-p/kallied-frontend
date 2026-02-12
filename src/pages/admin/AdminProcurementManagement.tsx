@@ -6,6 +6,7 @@ import {
 } from "../../api/admin";
 import AuthNavbar from "../../components/AuthNavbar";
 import AdminSidebar from "../../components/AdminSidebar";
+import Toast from "../../components/Toast";
 import {
   ShoppingCart,
   Search,
@@ -23,13 +24,14 @@ import {
   User,
   Briefcase,
 } from "lucide-react";
+import { getCurrentUser } from "../../api/users";
 
 interface ProcurementItem {
   id: string;
   name: string;
   quantity: number;
   unit: string;
-  estimatedCost: number;
+  estimatedCost?: number;
   type: string;
 }
 
@@ -41,7 +43,7 @@ interface ProcurementRequest {
   requestedBy: string;
   requestedByRole: string;
   dateSubmitted: string;
-  status: "Draft" | "SUBMITTED" | "APPROVED" | "REJECTED";
+  status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
   totalEstimatedCost: number;
   items: ProcurementItem[];
   description: string;
@@ -50,7 +52,31 @@ interface ProcurementRequest {
   rejectionReason?: string;
 }
 
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
 export default function AdminProcurementManagement() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  useEffect(() => {
+    setLoading(true);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+    setLoading(false);
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedRequest, setExpandedRequest] = useState<string | null>(null);
@@ -62,6 +88,7 @@ export default function AdminProcurementManagement() {
     ProcurementRequest[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadProcurements();
@@ -73,22 +100,29 @@ export default function AdminProcurementManagement() {
       const data = await getAdminProcurements();
 
       setProcurementRequests(
-        data.map((r: any) => ({
-          id: r.id,
-          title: r.title,
-          project: r.project.name,
-          projectId: r.project.id,
-          requestedBy: r.requestedBy.name,
-          requestedByRole: r.requestedBy.role,
-          dateSubmitted: new Date(r.createdAt).toLocaleDateString(),
-          status: r.status,
-          totalEstimatedCost: r.totalEstimatedCost,
-          description: r.description,
-          items: r.items,
-          attachedDocuments: r.attachments?.map((a: any) => a.fileName) ?? [],
-          notes: r.notes,
-          rejectionReason: r.rejectionReason,
-        })),
+        data.map((r: any) => {
+          const totalEstimatedCost = (r.items ?? []).reduce(
+            (sum: number, item: any) =>
+              sum + (item.estimatedCost ?? 0) * (item.quantity ?? 0),
+            0,
+          );
+          return {
+            id: r.id,
+            title: r.title,
+            project: r.project.name,
+            projectId: r.project.id,
+            requestedBy: r.createdBy?.name ?? "Unknown",
+            requestedByRole: r.createdBy?.role ?? "STAFF",
+            dateSubmitted: new Date(r.createdAt).toLocaleDateString(),
+            status: r.status,
+            totalEstimatedCost,
+            description: r.description,
+            items: r.items,
+            attachedDocuments: r.attachments?.map((a: any) => a.fileName) ?? [],
+            notes: r.notes,
+            rejectionReason: r.rejectionReason,
+          };
+        }),
       );
     } finally {
       setLoading(false);
@@ -112,33 +146,43 @@ export default function AdminProcurementManagement() {
   // Get status badge styling
   const getStatusBadge = (status: string) => {
     const styles = {
-      Draft: {
+      DRAFT: {
         bg: "bg-gray-100",
         text: "text-gray-700",
         border: "border-gray-300",
       },
-      Submitted: {
+      SUBMITTED: {
         bg: "bg-orange-100",
         text: "text-orange-700",
         border: "border-orange-300",
       },
-      Approved: {
+      APPROVED: {
         bg: "bg-green-100",
         text: "text-green-700",
         border: "border-green-300",
       },
-      Rejected: {
+      REJECTED: {
         bg: "bg-red-100",
         text: "text-red-700",
         border: "border-red-300",
       },
     };
-    const style = styles[status as keyof typeof styles] || styles.Draft;
+    const style = styles[status as keyof typeof styles] || styles.DRAFT;
+    const label =
+      status === "DRAFT"
+        ? "Draft"
+        : status === "SUBMITTED"
+          ? "Submitted"
+          : status === "APPROVED"
+            ? "Approved"
+            : status === "REJECTED"
+              ? "Rejected"
+              : status;
     return (
       <span
         className={`px-3 py-1 rounded-full text-xs font-medium border ${style.bg} ${style.text} ${style.border}`}
       >
-        {status}
+        {label}
       </span>
     );
   };
@@ -171,8 +215,8 @@ export default function AdminProcurementManagement() {
   // Generate Purchase Order
   const generatePO = (request: ProcurementRequest) => {
     console.log("Generating PO for:", request.id);
-    alert(
-      `Purchase Order generated for ${request.id}!\n\nThis would download a PO document in a real application.`,
+    setToastMessage(
+      `Purchase Order generated for ${request.id}. Document download will be available soon.`,
     );
   };
 
@@ -202,13 +246,24 @@ export default function AdminProcurementManagement() {
       .reduce((sum, r) => sum + getProcurementTotal(r), 0),
   };
 
-  const getUnitCost = (x, y) => {
-    return x / y;
-  };
+  const getUnitCost = (unitCost: number | null | undefined) => unitCost ?? 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone="info"
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <AdminSidebar activeItem="procurement" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -280,7 +335,7 @@ export default function AdminProcurementManagement() {
               </div>
               <h3 className="text-gray-600 text-sm mb-2">Total Value</h3>
               <p className="text-3xl mb-1" style={{ color: "#001f54" }}>
-                ${stats.totalValue.toLocaleString()}
+                ₦{stats.totalValue.toLocaleString()}
               </p>
               <p className="text-xs text-gray-500">All requests</p>
             </div>
@@ -293,7 +348,7 @@ export default function AdminProcurementManagement() {
               </div>
               <h3 className="text-gray-600 text-sm mb-2">Pending Value</h3>
               <p className="text-3xl mb-1" style={{ color: "#001f54" }}>
-                ${stats.pendingValue.toLocaleString()}
+                ₦{stats.pendingValue.toLocaleString()}
               </p>
               <p className="text-xs text-gray-500">Awaiting approval</p>
             </div>
@@ -326,10 +381,10 @@ export default function AdminProcurementManagement() {
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
                   >
                     <option value="all">All Statuses</option>
-                    <option value="Draft">Draft</option>
-                    <option value="Submitted">Submitted</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Rejected">Rejected</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="SUBMITTED">Submitted</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
                   </select>
                 </div>
               </div>
@@ -400,7 +455,7 @@ export default function AdminProcurementManagement() {
                               className="text-sm font-medium"
                               style={{ color: "#4169e1" }}
                             >
-                              Total: $
+                              Total: ₦
                               {request.totalEstimatedCost.toLocaleString()}
                             </span>
                             <span className="text-sm text-gray-400">•</span>
@@ -463,6 +518,42 @@ export default function AdminProcurementManagement() {
                       {/* Expanded Details */}
                       {expandedRequest === request.id && (
                         <div className="mt-6 pt-6 border-t border-gray-200">
+                          {/* Detail Actions */}
+                          <div className="mb-6 flex flex-wrap items-center gap-2">
+                            {request.status === "SUBMITTED" && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(request)}
+                                  className="px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-2"
+                                  style={{
+                                    backgroundColor: "#a7fc00",
+                                    color: "#001f54",
+                                  }}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleReject(request)}
+                                  className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {request.status === "APPROVED" && (
+                              <button
+                                onClick={() => generatePO(request)}
+                                className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity flex items-center gap-2"
+                                style={{ backgroundColor: "#4169e1" }}
+                              >
+                                <FileText className="w-4 h-4" />
+                                Generate PO
+                              </button>
+                            )}
+                          </div>
+
                           {/* Description */}
                           <div className="mb-6">
                             <h4
@@ -521,17 +612,20 @@ export default function AdminProcurementManagement() {
                                         {item.quantity}
                                       </td>
                                       <td className="py-3 px-4 text-right">
-                                        $
+                                        ₦
                                         {getUnitCost(
                                           item.estimatedCost,
-                                          item.quantity,
                                         ).toLocaleString()}
                                       </td>
                                       <td
                                         className="py-3 px-4 text-right font-medium"
                                         style={{ color: "#4169e1" }}
                                       >
-                                        ${item.estimatedCost.toLocaleString()}
+                                        ₦
+                                        {(
+                                          (item.estimatedCost ?? 0) *
+                                          (item.quantity ?? 0)
+                                        ).toLocaleString()}
                                       </td>
                                     </tr>
                                   ))}
@@ -547,7 +641,7 @@ export default function AdminProcurementManagement() {
                                       className="py-3 px-4 text-right text-lg"
                                       style={{ color: "#4169e1" }}
                                     >
-                                      $
+                                      ₦
                                       {request.totalEstimatedCost.toLocaleString()}
                                     </td>
                                     <td></td>

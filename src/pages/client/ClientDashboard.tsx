@@ -1,134 +1,136 @@
 import AuthNavbar from "../../components/AuthNavbar";
 import ClientSidebar from "../../components/ClientSidebar";
+import { useEffect, useMemo, useState } from "react";
 import {
   FolderKanban,
   CircleCheck,
   Clock,
   AlertCircle,
-  TrendingUp,
   CheckCircle2,
   FileText,
-  MessageCircle,
   Bell,
 } from "lucide-react";
+import { getClientDashboard } from "../../api/client";
+import { getCurrentUser } from "../../api/users";
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
 
 export default function ClientDashboard() {
-  // Mock data for summary cards
-  const summaryStats = {
-    totalActiveProjects: 12,
-    projectsInProgress: 7,
-    completedProjects: 24,
-    pendingActions: 5,
+  type DashboardActivityType = "notification" | "update" | "document";
+
+  interface SummaryStats {
+    totalActiveProjects: number;
+    projectsInProgress: number;
+    completedProjects: number;
+    pendingActions: number;
+  }
+
+  interface ActiveProject {
+    id: string;
+    name: string;
+    status: string;
+    progress: number;
+    milestone: string;
+    lastUpdate: string | Date;
+    statusColor: string;
+  }
+
+  interface ActivityItem {
+    id: string;
+    type: DashboardActivityType;
+    title: string;
+    description: string;
+    timestamp: string | Date;
+    unread?: boolean;
+  }
+
+  interface DashboardData {
+    summaryStats: SummaryStats;
+    activeProjects: ActiveProject[];
+    recentActivities: ActivityItem[];
+  }
+
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDashboard() {
+      const data = await getClientDashboard();
+      if (isMounted) {
+        setDashboard(data);
+      }
+    }
+    loadDashboard();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (isMounted) {
+          setUserData(user);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUser();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const summaryStats: SummaryStats = dashboard?.summaryStats ?? {
+    totalActiveProjects: 0,
+    projectsInProgress: 0,
+    completedProjects: 0,
+    pendingActions: 0,
   };
 
-  // Mock data for active projects
-  const activeProjects = [
-    {
-      id: 1,
-      name: "Website Redesign",
-      status: "In Progress",
-      progress: 73,
-      milestone: "UI/UX Design Phase - 3 of 5 screens completed",
-      lastUpdate: "2 hours ago",
-      statusColor: "#4169e1",
-    },
-    {
-      id: 2,
-      name: "Mobile App Development",
-      status: "In Progress",
-      progress: 45,
-      milestone: "Backend API Integration - Authentication module completed",
-      lastUpdate: "5 hours ago",
-      statusColor: "#4169e1",
-    },
-    {
-      id: 3,
-      name: "Brand Identity Package",
-      status: "Pending",
-      progress: 15,
-      milestone: "Awaiting client feedback on logo concepts",
-      lastUpdate: "1 day ago",
-      statusColor: "#ff9800",
-    },
-    {
-      id: 4,
-      name: "E-commerce Platform",
-      status: "In Progress",
-      progress: 88,
-      milestone: "Final testing phase - Payment gateway integration complete",
-      lastUpdate: "3 hours ago",
-      statusColor: "#4169e1",
-    },
-    {
-      id: 5,
-      name: "Marketing Campaign",
-      status: "Completed",
-      progress: 100,
-      milestone: "All deliverables submitted and approved",
-      lastUpdate: "2 days ago",
-      statusColor: "#4caf50",
-    },
-  ];
+  const activeProjects: ActiveProject[] = dashboard?.activeProjects ?? [];
 
-  // Mock data for recent activity feed
-  const recentActivities = [
-    {
-      id: 1,
-      type: "update",
-      title: "Project milestone completed",
-      description: "Website Redesign - Homepage design approved",
-      timestamp: "2 hours ago",
-      icon: CheckCircle2,
-      iconColor: "#4caf50",
-    },
-    {
-      id: 2,
-      type: "approval",
-      title: "Approval required",
-      description: "Brand Identity Package - Review logo concepts",
-      timestamp: "1 day ago",
-      icon: AlertCircle,
-      iconColor: "#ff9800",
-      unread: true,
-    },
-    {
-      id: 3,
-      type: "document",
-      title: "Document uploaded",
-      description: "E-commerce Platform - Technical specifications v2.0",
-      timestamp: "1 day ago",
-      icon: FileText,
-      iconColor: "#4169e1",
-    },
-    {
-      id: 4,
-      type: "message",
-      title: "New message received",
-      description: "Project Manager: Testing phase update available",
-      timestamp: "3 hours ago",
-      icon: MessageCircle,
-      iconColor: "#4169e1",
-      unread: true,
-    },
-    {
-      id: 5,
-      type: "update",
-      title: "Status update",
-      description: "Mobile App Development - Sprint 3 completed",
-      timestamp: "5 hours ago",
-      icon: TrendingUp,
-      iconColor: "#4169e1",
-    },
-    {
-      id: 6,
-      type: "document",
-      title: "Document uploaded",
-      description: "Marketing Campaign - Final report and analytics",
-      timestamp: "2 days ago",
-      icon: FileText,
-      iconColor: "#4169e1",
-    },
-  ];
+  const formatTimestamp = (value: string | Date) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "Unknown time";
+    return date.toLocaleString();
+  };
+
+  const recentActivities = useMemo(() => {
+    const activities = dashboard?.recentActivities ?? [];
+    return activities.map((activity) => {
+      switch (activity.type) {
+        case "notification":
+          return {
+            ...activity,
+            icon: AlertCircle,
+            iconColor: activity.unread ? "#ff9800" : "#4169e1",
+          };
+        case "document":
+          return {
+            ...activity,
+            icon: FileText,
+            iconColor: "#4169e1",
+          };
+        case "update":
+        default:
+          return {
+            ...activity,
+            icon: CheckCircle2,
+            iconColor: "#4caf50",
+          };
+      }
+    });
+  }, [dashboard]);
 
   // Unread messages count
   const unreadCount = recentActivities.filter(
@@ -150,7 +152,11 @@ export default function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar currentPage="client" />
+      <AuthNavbar
+        currentPage="client"
+        userName={userData?.name}
+        userEmail={userData?.email}
+      />
       <ClientSidebar activeItem="dashboard" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -322,7 +328,7 @@ export default function ClientDashboard() {
                   {/* Last Update */}
                   <div className="flex items-center text-xs text-gray-500">
                     <Clock className="w-3.5 h-3.5 mr-1" />
-                    Last updated {project.lastUpdate}
+                    Last updated {formatTimestamp(project.lastUpdate)}
                   </div>
                 </div>
               ))}
@@ -395,7 +401,7 @@ export default function ClientDashboard() {
                             </p>
                             <span className="text-xs text-gray-500 flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {activity.timestamp}
+                              {formatTimestamp(activity.timestamp)}
                             </span>
                           </div>
                         </div>

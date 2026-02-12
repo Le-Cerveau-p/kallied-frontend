@@ -21,6 +21,7 @@ import {
   ChevronDown,
   CheckCircle,
 } from "lucide-react";
+import Toast from "../../components/Toast";
 
 interface ResourceDocument {
   id: string;
@@ -51,6 +52,7 @@ export default function AdminResources() {
     useState<ResourceDocument["category"]>("Policy");
   const [newDocDescription, setNewDocDescription] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Mock resource documents
   const [documents, setDocuments] = useState<ResourceDocument[]>([
@@ -247,7 +249,7 @@ export default function AdminResources() {
       ),
     );
     // In a real app, this would trigger an actual download
-    alert(`Downloading ${doc.name}...`);
+    setToastMessage(`Downloading ${doc.name}...`);
   };
 
   // Calculate stats
@@ -266,6 +268,13 @@ export default function AdminResources() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone="info"
+          onClose={() => setToastMessage(null)}
+        />
+      )}
       <AuthNavbar />
       <AdminSidebar activeItem="resources" />
 

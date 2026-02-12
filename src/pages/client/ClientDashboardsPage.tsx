@@ -78,9 +78,9 @@ export default function ClientDashboardsPage() {
         "Real-time financial insights including project costs, invoicing status, payment timelines, and ROI tracking. Data is synchronized with your accounting system.",
       lastRefreshed: "Jan 21, 2026 at 1:45 PM",
       metrics: [
-        { label: "Total Investment", value: "$485K", icon: DollarSign },
+        { label: "Total Investment", value: "?485K", icon: DollarSign },
         { label: "Paid Invoices", value: "12", icon: TrendingUp },
-        { label: "Pending Amount", value: "$125K", icon: Clock },
+        { label: "Pending Amount", value: "?125K", icon: Clock },
         { label: "ROI", value: "+18%", icon: BarChart3, trend: "Above target" },
       ],
     },

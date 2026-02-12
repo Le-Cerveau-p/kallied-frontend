@@ -29,10 +29,46 @@ import {
 } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { getAdminDashboard, getAdminCharts } from "../../api/admin";
+import { getCurrentUser } from "../../api/users";
+import Toast from "../../components/Toast";
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
 
 export default function AdminAnalytics() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserData(user);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUser();
+
+  }, []);
   const [dateRange, setDateRange] = useState("last-6-months");
   const [selectedProject, setSelectedProject] = useState("all");
+
+  const projectCategories = [
+    { value: "CONSTRUCTION", label: "Construction" },
+    { value: "ENGINEERING", label: "Engineering" },
+    { value: "PROCUREMENT", label: "Procurement" },
+    { value: "CONSULTANCY", label: "Consultancy" },
+    { value: "MAINTENANCE", label: "Maintenance" },
+    { value: "GOVERNMENT", label: "Government" },
+    { value: "RESEARCH", label: "Research" },
+    { value: "TECH", label: "Tech" },
+  ];
 
   const [dashboard, setDashboard] = useState<any>(null);
   const [charts, setCharts] = useState<any>(null);
@@ -41,6 +77,7 @@ export default function AdminAnalytics() {
   useEffect(() => {
     const loadAnalytics = async () => {
       try {
+        setLoading(true);
         const [dashboardRes, chartsRes] = await Promise.all([
           getAdminDashboard(),
           getAdminCharts(),
@@ -50,6 +87,7 @@ export default function AdminAnalytics() {
         setCharts(chartsRes);
       } catch (err) {
         console.error("Failed to load analytics", err);
+        setToastMessage("Failed to load analytics data. Please refresh.");
       } finally {
         setLoading(false);
       }
@@ -64,24 +102,45 @@ export default function AdminAnalytics() {
   const completionTrendsData = useMemo(() => {
     if (!charts?.projectsOverTime) return [];
 
-    return charts.projectsOverTime.map((p: any) => ({
+    if (selectedProject === "all") {
+      return charts.projectsOverTime.map((p: any) => ({
+        month: p.month,
+        completed: p.count,
+        started: 0,
+      }));
+    }
+
+    const filtered = (charts.projectsOverTimeByCategory ?? []).filter(
+      (p: any) => p.category === selectedProject,
+    );
+    return filtered.map((p: any) => ({
       month: p.month,
       completed: p.count,
-      started: 0, // backend doesn’t track yet
+      started: 0,
     }));
-  }, [charts]);
+  }, [charts, selectedProject]);
 
   // Procurement spend by project
   const procurementSpendData = useMemo(() => {
     if (!dashboard?.stats?.procurementByProject) return [];
-    return dashboard.stats.procurementByProject;
-  }, [dashboard]);
+    if (selectedProject === "all") return dashboard.stats.procurementByProject;
+    return dashboard.stats.procurementByProject.filter(
+      (item: any) => item.category === selectedProject,
+    );
+  }, [dashboard, selectedProject]);
 
   // Project status distribution
   const projectStatusData = useMemo(() => {
     if (!charts?.projectsByStatus) return [];
 
-    return charts.projectsByStatus.map((s: any) => ({
+    const source =
+      selectedProject === "all"
+        ? charts.projectsByStatus
+        : (charts.projectsByStatusByCategory ?? []).filter(
+            (s: any) => s.category === selectedProject,
+          );
+
+    return source.map((s: any) => ({
       name: s.status.replace("_", " "),
       value: s._count._all,
       color:
@@ -93,7 +152,7 @@ export default function AdminAnalytics() {
               ? "#ff9800"
               : "#9c27b0",
     }));
-  }, [charts]);
+  }, [charts, selectedProject]);
 
   // Revenue by client type
   const revenueByClientData = [
@@ -123,28 +182,17 @@ export default function AdminAnalytics() {
   ];
 
   // Project categories performance
-  const categoryPerformanceData = [
-    { category: "Development", projects: 15, revenue: 890000, avgDuration: 72 },
-    { category: "Design", projects: 8, revenue: 320000, avgDuration: 45 },
-    {
-      category: "Infrastructure",
-      projects: 6,
-      revenue: 540000,
-      avgDuration: 85,
-    },
-    { category: "Consulting", projects: 12, revenue: 480000, avgDuration: 38 },
-    { category: "Support", projects: 6, revenue: 220000, avgDuration: 60 },
-  ];
+  const categoryPerformanceData = [];
 
   // Format currency
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
+      return `₦ ${(value / 1000000).toFixed(1)}M`;
     }
     if (value >= 1000) {
-      return `$${(value / 1000).toFixed(0)}K`;
+      return `₦ ${(value / 1000).toFixed(0)}K`;
     }
-    return `$${value}`;
+    return `₦ ${value}`;
   };
 
   // Get change indicator
@@ -162,6 +210,13 @@ export default function AdminAnalytics() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            tone="error"
+            onClose={() => setToastMessage(null)}
+          />
+        )}
         <AuthNavbar />
         <AdminSidebar activeItem="analytics" />
         <main className="pt-24 px-6">Loading analytics…</main>
@@ -169,11 +224,41 @@ export default function AdminAnalytics() {
     );
   }
 
-  if (!dashboard || !charts) return null;
+  if (!dashboard || !charts) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {toastMessage && (
+          <Toast
+            message={toastMessage}
+            tone="error"
+            onClose={() => setToastMessage(null)}
+          />
+        )}
+        <AuthNavbar />
+        <AdminSidebar activeItem="analytics" />
+        <main className="pt-24 px-6 text-gray-600">
+          Analytics data is not available yet.
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AuthNavbar />
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone="error"
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+      <AuthNavbar
+        currentPage="dashboard"
+        userName={userData?.name}
+        userEmail={userData?.email}
+        userAvatar=""
+        notificationCount={3}
+      />
       <AdminSidebar activeItem="analytics" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
@@ -246,7 +331,7 @@ export default function AdminAnalytics() {
                   className="block text-sm font-medium mb-2"
                   style={{ color: "#001f54" }}
                 >
-                  Project Filter
+                  Project Type
                 </label>
                 <div className="relative">
                   <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -255,13 +340,12 @@ export default function AdminAnalytics() {
                     onChange={(e) => setSelectedProject(e.target.value)}
                     className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
                   >
-                    <option value="all">All Projects</option>
-                    <option value="development">Development Projects</option>
-                    <option value="design">Design Projects</option>
-                    <option value="infrastructure">
-                      Infrastructure Projects
-                    </option>
-                    <option value="consulting">Consulting Projects</option>
+                    <option value="all">All Project Types</option>
+                    {projectCategories.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>

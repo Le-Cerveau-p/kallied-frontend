@@ -20,9 +20,9 @@ interface DashboardNavbarProps {
 
 export default function AuthNavbar({
   currentPage = 'dashboard',
-  userName = 'John Doe',
-  userEmail = 'john.doe@example.com',
-  userAvatar = '',
+  userName,
+  userEmail,
+  userAvatar,
   notificationCount = 3,
 }: DashboardNavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -84,7 +84,8 @@ export default function AuthNavbar({
     setShowLogoutModal(false);
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name?: string) => {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -92,6 +93,10 @@ export default function AuthNavbar({
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const displayName = userName || '—';
+  const displayEmail = userEmail || '';
+  const displayAvatar = userAvatar || '';
 
   return (
     <nav
@@ -171,12 +176,12 @@ export default function AuthNavbar({
                 <DropdownMenuTrigger className="focus:outline-none">
                   <div className="flex items-center gap-3 p-1 rounded-lg hover:bg-[#4169e1] transition-colors duration-200">
                     <Avatar className="w-9 h-9">
-                      <AvatarImage src={userAvatar} alt={userName} />
+                      <AvatarImage src={displayAvatar} alt={displayName} />
                       <AvatarFallback
                         className="text-[#001f54]"
                         style={{ backgroundColor: '#a7fc00' }}
                       >
-                        {getInitials(userName)}
+                        {getInitials(displayName)}
                       </AvatarFallback>
                     </Avatar>
                   </div>
@@ -189,9 +194,9 @@ export default function AuthNavbar({
                   {/* User Info */}
                   <div className="px-2 py-3 border-b">
                     <p className="font-semibold" style={{ color: '#001f54' }}>
-                      {userName}
+                      {displayName}
                     </p>
-                    <p className="text-sm text-gray-500">{userEmail}</p>
+                    <p className="text-sm text-gray-500">{displayEmail}</p>
                   </div>
 
                   {/* Menu Items */}
@@ -252,17 +257,17 @@ export default function AuthNavbar({
           {/* Mobile User Info */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-[#4169e1]/30">
             <Avatar className="w-10 h-10">
-              <AvatarImage src={userAvatar} alt={userName} />
+              <AvatarImage src={displayAvatar} alt={displayName} />
               <AvatarFallback
                 className="text-[#001f54]"
                 style={{ backgroundColor: '#a7fc00' }}
               >
-                {getInitials(userName)}
+                {getInitials(displayName)}
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-semibold text-white">{userName}</p>
-              <p className="text-sm text-gray-300">{userEmail}</p>
+              <p className="font-semibold text-white">{displayName}</p>
+              <p className="text-sm text-gray-300">{displayEmail}</p>
             </div>
           </div>
 
