@@ -60,6 +60,7 @@ export default function StaffMessagesPage() {
   const [attachment, setAttachment] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const socketRef = useRef<ReturnType<typeof getChatSocket> | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -186,6 +187,10 @@ export default function StaffMessagesPage() {
       socket.off("thread-read", handleThreadRead);
     };
   }, [selectedThread, userId, refreshThreads]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedThread?.id]);
 
   const filteredThreads = useMemo(() => {
     return threads.filter((thread) => {
@@ -617,6 +622,7 @@ export default function StaffMessagesPage() {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
 
               <div className="p-6 border-t" style={{ borderColor: "#e5e7eb" }}>

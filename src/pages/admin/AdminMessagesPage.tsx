@@ -74,6 +74,7 @@ export default function AdminMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [attachment, setAttachment] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -207,6 +208,10 @@ export default function AdminMessagesPage() {
       socket.off("thread-read", handleThreadRead);
     };
   }, [selectedChat, userId, refreshThreads]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedChat?.id]);
 
   const filteredChats = useMemo(
     () =>
@@ -636,6 +641,7 @@ export default function AdminMessagesPage() {
                           </div>
                         );
                       })}
+                    <div ref={messagesEndRef} />
                   </div>
 
                   {selectedChat.adminJoined && (

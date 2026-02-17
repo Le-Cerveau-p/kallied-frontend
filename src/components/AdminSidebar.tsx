@@ -179,7 +179,7 @@ export default function AdminSidebar({
           </nav>
 
           {/* Collapse Toggle Button - Desktop Only */}
-          <div className="hidden lg:block p-3 border-t border-white/10">
+          {/* <div className="hidden lg:block p-3 border-t border-white/10">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
@@ -193,7 +193,7 @@ export default function AdminSidebar({
                 </>
               )}
             </button>
-          </div>
+          </div> */}
         </div>
       </aside>
 

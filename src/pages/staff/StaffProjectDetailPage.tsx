@@ -201,6 +201,7 @@ export default function StaffProjectDetailPage() {
   const [messageAttachment, setMessageAttachment] = useState<File | null>(null);
   const messageFileRef = useRef<HTMLInputElement>(null);
   const socketRef = useRef<ReturnType<typeof getChatSocket> | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // New update form state
   const [newUpdateProgress, setNewUpdateProgress] = useState(75);
@@ -393,6 +394,10 @@ export default function StaffProjectDetailPage() {
 
     setActiveTab(normalized as typeof activeTab);
   }, [searchParams]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [threadMessages, selectedThread?.id, activeTab]);
 
   // Mock customer requests data
   const customerRequests: CustomerRequest[] = [
@@ -1599,6 +1604,7 @@ export default function StaffProjectDetailPage() {
                       </div>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Message Composer */}

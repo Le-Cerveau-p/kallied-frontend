@@ -71,6 +71,7 @@ export default function ClientChatThreadsPage() {
   );
   const [attachment, setAttachment] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -204,6 +205,10 @@ export default function ClientChatThreadsPage() {
       socket.off("thread-read", handleThreadRead);
     };
   }, [selectedThread, userId, refreshThreads]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedThread?.id, modalOpen]);
 
   const mapAttachment = (attachments: any[] | undefined) => {
     const attachmentItem = attachments?.[0];
@@ -615,6 +620,7 @@ export default function ClientChatThreadsPage() {
                   <p>No messages yet. Start the conversation!</p>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             <div className="p-6 border-t" style={{ borderColor: "#e5e7eb" }}>
