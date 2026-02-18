@@ -106,7 +106,15 @@ export default function Home() {
   };
 
   const scrollToServices = () => {
+    navigate("/services");
+  };
+
+  const scrollToFeatures = () => {
     navigate("/features");
+  };
+
+  const scrollToContact = () => {
+    navigate("/contact");
   };
 
   return (
@@ -146,7 +154,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
             <button
-              onClick={scrollToSignup}
+              onClick={scrollToFeatures}
               className="group px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2"
               style={{ backgroundColor: "#a7fc00", color: "#001f54" }}
             >
@@ -425,7 +433,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={scrollToSignup}
+              onClick={scrollToContact}
               className="group px-10 py-5 rounded-lg font-semibold text-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl flex items-center justify-center gap-2"
               style={{ backgroundColor: "#a7fc00", color: "#001f54" }}
             >
@@ -436,6 +444,7 @@ export default function Home() {
               />
             </button>
             <button
+              onClick={scrollToContact}
               className="px-10 py-5 rounded-lg font-semibold text-xl border-2 transition-all duration-300 hover:scale-105 hover:shadow-xl"
               style={{ borderColor: "#4169e1", color: "#4169e1" }}
               onMouseEnter={(e) => {
@@ -451,7 +460,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-gray-500">
+          {/* <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-gray-500">
             <div className="flex items-center gap-2">
               <CircleCheck size={20} style={{ color: "#4169e1" }} />
               <span>Free 14-day trial</span>
@@ -464,7 +473,7 @@ export default function Home() {
               <CircleCheck size={20} style={{ color: "#4169e1" }} />
               <span>Cancel anytime</span>
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
 
