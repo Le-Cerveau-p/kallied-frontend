@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -45,17 +46,31 @@ import StaffProfilePage from "./pages/staff/StaffProfilePage";
 import AdminTimesheetsPage from "./pages/admin/AdminTimesheetsPage";
 import ClientSettingsPage from "./pages/client/ClientSettingsPage";
 import StaffSettingsPage from "./pages/staff/StaffSettingsPage";
+import ServicesPage from "./pages/ServicesPage";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   return (
-    <Routes>
-      {/* {Public} */}
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Register />} />
-      <Route path="/features" element={<Features />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/contact" element={<ContactPage />} />
+    <>
+      <ScrollToTop />
+      <Routes>
+        {/* {Public} */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Register />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
       {/* Protected (later) */}
 
@@ -428,16 +443,17 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute roles={["ADMIN", "STAFF", "CLIENT"]}>
-            {" "}
-            <SettingsRouter />{" "}
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute roles={["ADMIN", "STAFF", "CLIENT"]}>
+              {" "}
+              <SettingsRouter />{" "}
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </>
   );
 }
 

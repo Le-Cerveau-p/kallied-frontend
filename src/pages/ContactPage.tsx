@@ -2,6 +2,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { Link } from "react-router-dom";
 import Navbar from '../components/NavBar';
 import Footer from '../components/Footer';
+import Toast from '../components/Toast';
 import {
   Mail,
   Phone,
@@ -12,7 +13,7 @@ import {
   MessageSquare,
   Loader,
 } from 'lucide-react';
-import { getCompanyProfile } from '../api/public';
+import { getCompanyProfile, sendContactMessage } from '../api/public';
 
 interface FormData {
   name: string;
@@ -54,6 +55,9 @@ export default function ContactPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastTone, setToastTone] = useState<"success" | "error">("success");
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(
     null,
   );
@@ -128,24 +132,36 @@ export default function ContactPage() {
 
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
-      
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      
-      // Reset form after success
-      setTimeout(() => {
-        setFormData({
-          name: '',
-          email: '',
-          subject: '',
-          message: '',
-        });
-        setTouched({});
-        setIsSuccess(false);
-      }, 3000);
+      setSubmitError(null);
+      try {
+        await sendContactMessage(formData);
+        setIsSuccess(true);
+        setToastTone("success");
+        setToastMessage("Your message has been sent successfully.");
+
+        // Reset form after success
+        setTimeout(() => {
+          setFormData({
+            name: '',
+            email: '',
+            subject: '',
+            message: '',
+          });
+          setTouched({});
+          setIsSuccess(false);
+        }, 3000);
+      } catch (err: any) {
+        const message =
+          err?.response?.data?.message ||
+          'Failed to send message. Please try again shortly.';
+        setSubmitError(
+          Array.isArray(message) ? message.join(', ') : String(message),
+        );
+        setToastTone("error");
+        setToastMessage("Unable to send message right now.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -198,6 +214,13 @@ export default function ContactPage() {
     <div className="min-h-screen bg-white">
       {/* Navbar */}
       <Navbar currentPage="contact" />
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          tone={toastTone}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
 
       {/* Hero Section */}
       <section className="pt-24 pb-12 bg-white">
@@ -323,6 +346,13 @@ export default function ContactPage() {
                         A member of our team will contact you shortly.
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {submitError && (
+                  <div className="mb-6 p-4 rounded-lg border-2 border-red-200 bg-red-50">
+                    <p className="font-semibold text-red-700">Unable to send message</p>
+                    <p className="text-sm text-red-600 mt-1">{submitError}</p>
                   </div>
                 )}
 

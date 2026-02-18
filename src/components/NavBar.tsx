@@ -46,6 +46,7 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
   const navLinks = [
     { name: "Home", href: "/" },
     { name: "Features", href: "/features" },
+    { name: "Services", href: "/services" },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
   ];
