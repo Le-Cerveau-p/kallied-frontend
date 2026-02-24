@@ -4,8 +4,12 @@ import axios from "axios";
 //   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
 // });
 
+// export const api = axios.create({
+//   baseURL: "https://kallied-backend-production.up.railway.app",
+// });
+
 export const api = axios.create({
-  baseURL: "https://kallied-backend-production.up.railway.app",
+  baseURL: "https://k-allied.org/api",
 });
 
 // Attach token automatically
