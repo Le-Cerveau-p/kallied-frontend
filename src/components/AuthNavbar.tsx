@@ -116,11 +116,11 @@ export default function AuthNavbar({
           <div className="flex-shrink-0 lg:ml-0 ml-12">
             <a href="/" className="flex items-center">
               <img
-                src="/src/assets/K-ALLIED_icon.png"
+                src="../../public/K-ALLIED_icon.png"
                 alt="K-Allied"
                 className="h-12 w-auto"
                 onError={(e) => {
-                  e.currentTarget.src = "/src/assets/Logo.png";
+                  e.currentTarget.src = "../../public/Logo.png";
                 }}
               />
             </a>
