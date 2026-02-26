@@ -64,11 +64,11 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
               <img
-                src="../../public/K-ALLIED_icon.png"
+                src="/K-ALLIED_icon.png"
                 alt="K-Allied"
                 className="h-12 w-auto"
                 onError={(e) => {
-                  e.currentTarget.src = "../../public/Logo.png";
+                  e.currentTarget.src = "/Logo.png";
                 }}
               />
             </Link>
