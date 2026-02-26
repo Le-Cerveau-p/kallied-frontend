@@ -110,45 +110,31 @@ export default function AboutPage() {
 
   const team = [
     {
-      name: "Sarah Mitchell",
-      role: "CEO & Co-Founder",
-      bio: "Former VP of Product at a leading SaaS company with 15+ years in tech.",
-      initials: "SM",
-      color: "#4169e1",
-    },
-    {
-      name: "David Chen",
-      role: "CTO & Co-Founder",
-      bio: "Ex-Google engineer with expertise in distributed systems and security.",
-      initials: "DC",
+      name: "Simeon Olatunde",
+      role: "Managing Director/Chief Executive Officer (MD/CEO)",
+      // bio: "Ex-Google engineer with expertise in distributed systems and security.",
+      initials: "SO",
       color: "#001f54",
     },
     {
-      name: "Emily Rodriguez",
-      role: "VP of Engineering",
-      bio: "Built engineering teams at multiple successful startups, CS PhD from MIT.",
-      initials: "ER",
+      name: "Robert Kunle Toyinbo",
+      role: "Executive Director (ED) Operations/Programs",
+      // bio: "Former VP of Product at a leading SaaS company with 15+ years in tech.",
+      initials: "RT",
       color: "#4169e1",
     },
     {
-      name: "Michael Thompson",
-      role: "VP of Product",
-      bio: "Product leader with a track record of launching products used by millions.",
-      initials: "MT",
-      color: "#001f54",
-    },
-    {
-      name: "Jessica Park",
-      role: "VP of Customer Success",
-      bio: "Expert in building world-class customer experience programs.",
-      initials: "JP",
+      name: "Olumide Abraham Ayoola",
+      role: "Director of Consulting & Advisory Services",
+      // bio: "Built engineering teams at multiple successful startups, CS PhD from MIT.",
+      initials: "OA",
       color: "#4169e1",
     },
     {
-      name: "Alex Kumar",
-      role: "VP of Design",
-      bio: "Award-winning designer focused on creating intuitive user experiences.",
-      initials: "AK",
+      name: "Precious Aremu",
+      role: "Director of ICT & Digital Solutions",
+      // bio: "Product leader with a track record of launching products used by millions.",
+      initials: "PA",
       color: "#001f54",
     },
   ];
@@ -532,7 +518,7 @@ export default function AboutPage() {
                 </p>
 
                 {/* Bio */}
-                <p className="text-gray-600 leading-relaxed">{member.bio}</p>
+                {/* <p className="text-gray-600 leading-relaxed">{member.bio}</p> */}
               </div>
             ))}
           </div>

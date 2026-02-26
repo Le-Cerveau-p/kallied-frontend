@@ -66,9 +66,10 @@ export default function ClientChatThreadsPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
-  const [userData, setUserData] = useState<{ name: string; email: string } | null>(
-    null,
-  );
+  const [userData, setUserData] = useState<{
+    name: string;
+    email: string;
+  } | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -151,8 +152,9 @@ export default function ClientChatThreadsPage() {
         id: message.id,
         senderId,
         senderName: message.sender?.name ?? "Unknown",
-        senderRole:
-          (message.sender?.role ?? "CLIENT").toLowerCase() as Message["senderRole"],
+        senderRole: (
+          message.sender?.role ?? "CLIENT"
+        ).toLowerCase() as Message["senderRole"],
         content: message.content ?? "",
         timestamp: new Date(message.createdAt).toLocaleString(),
         attachment: mapAttachment(message.attachments),
@@ -169,7 +171,7 @@ export default function ClientChatThreadsPage() {
             lastActivity: mappedMessage.timestamp,
             unreadCount: shouldIncrement
               ? (thread.unreadCount ?? 0) + 1
-              : thread.unreadCount ?? 0,
+              : (thread.unreadCount ?? 0),
           };
         }),
       );
@@ -229,7 +231,9 @@ export default function ClientChatThreadsPage() {
       id: message.id,
       senderId: message.sender?.id ?? "",
       senderName: message.sender?.name ?? "Unknown",
-      senderRole: (message.sender?.role ?? "CLIENT").toLowerCase() as Message["senderRole"],
+      senderRole: (
+        message.sender?.role ?? "CLIENT"
+      ).toLowerCase() as Message["senderRole"],
       content: message.content ?? "",
       timestamp: new Date(message.createdAt).toLocaleString(),
       attachment: mapAttachment(message.attachments),
@@ -325,7 +329,7 @@ export default function ClientChatThreadsPage() {
         userName={userData?.name}
         userEmail={userData?.email}
       />
-      <ClientSidebar activeItem="dashboard" />
+      <ClientSidebar activeItem="messages" />
 
       <main className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:pl-72">
         <div className="max-w-5xl mx-auto">
@@ -512,10 +516,7 @@ export default function ClientChatThreadsPage() {
             className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="p-6 border-b"
-              style={{ borderColor: "#e5e7eb" }}
-            >
+            <div className="p-6 border-b" style={{ borderColor: "#e5e7eb" }}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

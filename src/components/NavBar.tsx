@@ -63,12 +63,14 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link to="/" className="flex items-center">
-              <div
-                className="px-4 py-2 rounded-lg font-bold text-xl"
-                style={{ color: "#a7fc00" }}
-              >
-                K-Allied
-              </div>
+              <img
+                src="/src/assets/K-ALLIED_icon.png"
+                alt="K-Allied"
+                className="h-12 w-auto"
+                onError={(e) => {
+                  e.currentTarget.src = "/src/assets/Logo.png";
+                }}
+              />
             </Link>
           </div>
 
@@ -156,8 +158,10 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          isMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        className={`md:hidden transition-all duration-300 ease-in-out ${
+          isMenuOpen
+            ? "max-h-[calc(100vh-4rem)] opacity-100 overflow-y-auto"
+            : "max-h-0 opacity-0 overflow-hidden"
         }`}
         style={{ backgroundColor: "#001f54" }}
       >

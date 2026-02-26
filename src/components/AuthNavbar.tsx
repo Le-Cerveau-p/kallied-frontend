@@ -1,14 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Bell, LayoutDashboard, User, Settings, LogOut, Menu, X, TriangleAlert, Loader } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import {
+  Bell,
+  LayoutDashboard,
+  User,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  TriangleAlert,
+  Loader,
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+} from "../ui/dropdown-menu";
 
 interface DashboardNavbarProps {
   currentPage?: string;
@@ -19,7 +29,7 @@ interface DashboardNavbarProps {
 }
 
 export default function AuthNavbar({
-  currentPage = 'dashboard',
+  currentPage = "dashboard",
   userName,
   userEmail,
   userAvatar,
@@ -31,38 +41,35 @@ export default function AuthNavbar({
   const { logout } = useAuth();
 
   const navItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Profile', icon: User, href: '/profile' },
-    { name: 'Settings', icon: Settings, href: '/settings' },
+    { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+    { name: "Profile", icon: User, href: "/profile" },
+    { name: "Settings", icon: Settings, href: "/settings" },
   ];
 
   const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
-    let inactivityTimer: ReturnType<typeof setTimeout>;
+  let inactivityTimer: ReturnType<typeof setTimeout>;
 
-    const resetTimer = () => {
-      clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => {
-        logout();
-      }, INACTIVITY_LIMIT);
-    };
-
-    useEffect(() => {
-      // Actions that count as "activity"
-      const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
-
-      events.forEach((event) => window.addEventListener(event, resetTimer));
-
-      // start timer initially
-      resetTimer();
-
-  return () => {
-    events.forEach((event) =>
-      window.removeEventListener(event, resetTimer)
-    );
+  const resetTimer = () => {
     clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      logout();
+    }, INACTIVITY_LIMIT);
   };
-}, []);
 
+  useEffect(() => {
+    // Actions that count as "activity"
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+
+    // start timer initially
+    resetTimer();
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+      clearTimeout(inactivityTimer);
+    };
+  }, []);
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -70,12 +77,12 @@ export default function AuthNavbar({
 
   const handleLogoutConfirm = async () => {
     setIsLoggingOut(true);
-    
+
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 800));
-    
+
     logout();
-    
+
     setIsLoggingOut(false);
     setShowLogoutModal(false);
   };
@@ -85,35 +92,37 @@ export default function AuthNavbar({
   };
 
   const getInitials = (name?: string) => {
-    if (!name) return '?';
+    if (!name) return "?";
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
 
-  const displayName = userName || '—';
-  const displayEmail = userEmail || '';
-  const displayAvatar = userAvatar || '';
+  const displayName = userName || "—";
+  const displayEmail = userEmail || "";
+  const displayAvatar = userAvatar || "";
 
   return (
     <nav
       className="fixed top-0 left-0 right-0 z-50 shadow-md"
-      style={{ backgroundColor: '#001f54' }}
+      style={{ backgroundColor: "#001f54" }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0 lg:ml-0 ml-12">
             <a href="/" className="flex items-center">
-              <div
-                className="px-4 py-2 rounded-lg font-bold text-xl"
-                style={{ color: '#a7fc00' }}
-              >
-                K-Allied
-              </div>
+              <img
+                src="/src/assets/K-ALLIED_icon.png"
+                alt="K-Allied"
+                className="h-12 w-auto"
+                onError={(e) => {
+                  e.currentTarget.src = "/src/assets/Logo.png";
+                }}
+              />
             </a>
           </div>
 
@@ -127,21 +136,17 @@ export default function AuthNavbar({
                   key={item.name}
                   href={item.href}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-                    isActive ? 'text-white' : 'text-gray-300 hover:text-white'
+                    isActive ? "text-white" : "text-gray-300 hover:text-white"
                   }`}
-                  style={
-                    isActive
-                      ? { backgroundColor: '#4169e1' }
-                      : {}
-                  }
+                  style={isActive ? { backgroundColor: "#4169e1" } : {}}
                   onMouseEnter={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.backgroundColor = '#4169e1';
+                      e.currentTarget.style.backgroundColor = "#4169e1";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.backgroundColor = "transparent";
                     }
                   }}
                 >
@@ -163,9 +168,9 @@ export default function AuthNavbar({
               {notificationCount > 0 && (
                 <span
                   className="absolute top-0 right-0 flex items-center justify-center text-xs text-[#001f54] rounded-full min-w-[18px] h-[18px] px-1"
-                  style={{ backgroundColor: '#a7fc00' }}
+                  style={{ backgroundColor: "#a7fc00" }}
                 >
-                  {notificationCount > 9 ? '9+' : notificationCount}
+                  {notificationCount > 9 ? "9+" : notificationCount}
                 </span>
               )}
             </button>
@@ -179,7 +184,7 @@ export default function AuthNavbar({
                       <AvatarImage src={displayAvatar} alt={displayName} />
                       <AvatarFallback
                         className="text-[#001f54]"
-                        style={{ backgroundColor: '#a7fc00' }}
+                        style={{ backgroundColor: "#a7fc00" }}
                       >
                         {getInitials(displayName)}
                       </AvatarFallback>
@@ -189,11 +194,11 @@ export default function AuthNavbar({
                 <DropdownMenuContent
                   align="end"
                   className="w-56 mt-2"
-                  style={{ backgroundColor: 'white' }}
+                  style={{ backgroundColor: "white" }}
                 >
                   {/* User Info */}
                   <div className="px-2 py-3 border-b">
-                    <p className="font-semibold" style={{ color: '#001f54' }}>
+                    <p className="font-semibold" style={{ color: "#001f54" }}>
                       {displayName}
                     </p>
                     <p className="text-sm text-gray-500">{displayEmail}</p>
@@ -205,7 +210,7 @@ export default function AuthNavbar({
                       href="/profile"
                       className="flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-gray-100 transition-colors"
                     >
-                      <User size={16} style={{ color: '#4169e1' }} />
+                      <User size={16} style={{ color: "#4169e1" }} />
                       <span>Profile</span>
                     </a>
                   </DropdownMenuItem>
@@ -215,7 +220,7 @@ export default function AuthNavbar({
                       href="/settings"
                       className="flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-gray-100 transition-colors"
                     >
-                      <Settings size={16} style={{ color: '#4169e1' }} />
+                      <Settings size={16} style={{ color: "#4169e1" }} />
                       <span>Settings</span>
                     </a>
                   </DropdownMenuItem>
@@ -249,9 +254,9 @@ export default function AuthNavbar({
       {/* Mobile Menu */}
       <div
         className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          isMobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         }`}
-        style={{ backgroundColor: '#001f54' }}
+        style={{ backgroundColor: "#001f54" }}
       >
         <div className="px-4 pt-2 pb-4 space-y-2 border-t border-[#4169e1]/30">
           {/* Mobile User Info */}
@@ -260,7 +265,7 @@ export default function AuthNavbar({
               <AvatarImage src={displayAvatar} alt={displayName} />
               <AvatarFallback
                 className="text-[#001f54]"
-                style={{ backgroundColor: '#a7fc00' }}
+                style={{ backgroundColor: "#a7fc00" }}
               >
                 {getInitials(displayName)}
               </AvatarFallback>
@@ -281,13 +286,9 @@ export default function AuthNavbar({
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  isActive ? 'text-white' : 'text-gray-300 hover:text-white'
+                  isActive ? "text-white" : "text-gray-300 hover:text-white"
                 }`}
-                style={
-                  isActive
-                    ? { backgroundColor: '#4169e1' }
-                    : {}
-                }
+                style={isActive ? { backgroundColor: "#4169e1" } : {}}
               >
                 <Icon size={20} />
                 <span>{item.name}</span>
@@ -322,13 +323,14 @@ export default function AuthNavbar({
               <div className="w-12 h-12 rounded-full flex items-center justify-center bg-red-100">
                 <TriangleAlert size={24} className="text-red-600" />
               </div>
-              <h3 className="text-xl font-bold" style={{ color: '#001f54' }}>
+              <h3 className="text-xl font-bold" style={{ color: "#001f54" }}>
                 Confirm Logout
               </h3>
             </div>
 
             <p className="text-gray-600 mb-6">
-              Are you sure you want to log out? This will end your current session and you'll need to log in again to access your account.
+              Are you sure you want to log out? This will end your current
+              session and you'll need to log in again to access your account.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -336,7 +338,7 @@ export default function AuthNavbar({
                 onClick={handleLogoutCancel}
                 disabled={isLoggingOut}
                 className="flex-1 px-6 py-3 rounded-lg font-semibold border-2 transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
-                style={{ borderColor: '#4169e1', color: '#4169e1' }}
+                style={{ borderColor: "#4169e1", color: "#4169e1" }}
               >
                 Cancel
               </button>

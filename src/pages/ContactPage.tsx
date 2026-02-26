@@ -1,8 +1,8 @@
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from "react";
 import { Link } from "react-router-dom";
-import Navbar from '../components/NavBar';
-import Footer from '../components/Footer';
-import Toast from '../components/Toast';
+import Navbar from "../components/NavBar";
+import Footer from "../components/Footer";
+import Toast from "../components/Toast";
 import {
   Mail,
   Phone,
@@ -12,8 +12,8 @@ import {
   Clock,
   MessageSquare,
   Loader,
-} from 'lucide-react';
-import { getCompanyProfile, sendContactMessage } from '../api/public';
+} from "lucide-react";
+import { getCompanyProfile, sendContactMessage } from "../api/public";
 
 interface FormData {
   name: string;
@@ -45,10 +45,10 @@ interface CompanyProfile {
 
 export default function ContactPage() {
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -71,27 +71,27 @@ export default function ContactPage() {
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+      newErrors.name = "Name must be at least 2 characters";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Please enter a valid email address";
     }
 
     if (!formData.subject.trim()) {
-      newErrors.subject = 'Subject is required';
+      newErrors.subject = "Subject is required";
     } else if (formData.subject.trim().length < 3) {
-      newErrors.subject = 'Subject must be at least 3 characters';
+      newErrors.subject = "Subject must be at least 3 characters";
     }
 
     if (!formData.message.trim()) {
-      newErrors.message = 'Message is required';
+      newErrors.message = "Message is required";
     } else if (formData.message.trim().length < 10) {
-      newErrors.message = 'Message must be at least 10 characters';
+      newErrors.message = "Message must be at least 10 characters";
     }
 
     return newErrors;
@@ -103,12 +103,9 @@ export default function ContactPage() {
     setErrors(newErrors);
   };
 
-  const handleChange = (
-    field: keyof FormData,
-    value: string
-  ) => {
+  const handleChange = (field: keyof FormData, value: string) => {
     setFormData({ ...formData, [field]: value });
-    
+
     // Clear error when user starts typing
     if (touched[field]) {
       const newErrors = validateForm();
@@ -118,7 +115,7 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     // Mark all fields as touched
     setTouched({
       name: true,
@@ -142,10 +139,10 @@ export default function ContactPage() {
         // Reset form after success
         setTimeout(() => {
           setFormData({
-            name: '',
-            email: '',
-            subject: '',
-            message: '',
+            name: "",
+            email: "",
+            subject: "",
+            message: "",
           });
           setTouched({});
           setIsSuccess(false);
@@ -153,9 +150,9 @@ export default function ContactPage() {
       } catch (err: any) {
         const message =
           err?.response?.data?.message ||
-          'Failed to send message. Please try again shortly.';
+          "Failed to send message. Please try again shortly.";
         setSubmitError(
-          Array.isArray(message) ? message.join(', ') : String(message),
+          Array.isArray(message) ? message.join(", ") : String(message),
         );
         setToastTone("error");
         setToastMessage("Unable to send message right now.");
@@ -184,31 +181,31 @@ export default function ContactPage() {
   }, []);
 
   const contactInfo = [
-  {
-    icon: Mail,
-    title: 'Email Us',
-    value: companyProfile?.email ?? 'info@kalliedsolutions.com',
-    link: `mailto:${companyProfile?.email ?? 'info@kalliedsolutions.com'}`,
-  },
-  {
-    icon: Phone,
-    title: 'Call Us',
-    value: companyProfile?.phone ?? '+234 (0) 802-000-0000',
-    link: `tel:${(companyProfile?.phone ?? '+234 (0) 802-000-0000').replace(/\s+/g, '')}`,
-  },
-  {
-    icon: MapPin,
-    title: 'Visit Us',
-    value: companyProfile?.address ?? 'Abuja, Nigeria (Head Office)',
-    link: '#map',
-  },
-  {
-    icon: Clock,
-    title: 'Business Hours',
-    value: 'Mon – Fri: 9:00 AM – 5:00 PM (WAT)',
-    link: null,
-  },
-];
+    {
+      icon: Mail,
+      title: "Email Us",
+      value: companyProfile?.email ?? "info@kallied.org",
+      link: `mailto:${companyProfile?.email ?? "info@kallied.org"}`,
+    },
+    {
+      icon: Phone,
+      title: "Call Us",
+      value: companyProfile?.phone ?? "+234 (0) 802-000-0000",
+      link: `tel:${(companyProfile?.phone ?? "+234 (0) 802-000-0000").replace(/\s+/g, "")}`,
+    },
+    {
+      icon: MapPin,
+      title: "Visit Us",
+      value: companyProfile?.address ?? "Abuja, Nigeria (Head Office)",
+      link: "#map",
+    },
+    {
+      icon: Clock,
+      title: "Business Hours",
+      value: "Mon – Fri: 9:00 AM – 5:00 PM (WAT)",
+      link: null,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-white">
@@ -227,22 +224,22 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-            style={{ backgroundColor: '#a7fc00' }}
+            style={{ backgroundColor: "#a7fc00" }}
           >
-            <MessageSquare size={18} style={{ color: '#001f54' }} />
-            <span className="font-semibold" style={{ color: '#001f54' }}>
+            <MessageSquare size={18} style={{ color: "#001f54" }} />
+            <span className="font-semibold" style={{ color: "#001f54" }}>
               Get In Touch
             </span>
           </div>
           <h1
             className="text-5xl md:text-6xl font-bold mb-6"
-            style={{ color: '#001f54' }}
+            style={{ color: "#001f54" }}
           >
-            Contact <span style={{ color: '#4169e1' }}>Our Team</span>
+            Contact <span style={{ color: "#4169e1" }}>Our Team</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Have a project, request or enquiry? Our team is ready to support you with professional
-            guidance, proposals and technical assistance.
+            Have a project, request or enquiry? Our team is ready to support you
+            with professional guidance, proposals and technical assistance.
           </p>
         </div>
       </section>
@@ -255,13 +252,14 @@ export default function ContactPage() {
             <div className="lg:col-span-1">
               <h2
                 className="text-3xl font-bold mb-6"
-                style={{ color: '#001f54' }}
+                style={{ color: "#001f54" }}
               >
                 Contact Information
               </h2>
               <p className="text-gray-600 mb-8">
-                Send us a message and a member of our team will respond as soon as possible.
-                We handle project enquiries, support requests and partnership opportunities.
+                Send us a message and a member of our team will respond as soon
+                as possible. We handle project enquiries, support requests and
+                partnership opportunities.
               </p>
 
               <div className="space-y-6">
@@ -271,14 +269,14 @@ export default function ContactPage() {
                     <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 transition-colors">
                       <div
                         className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: '#4169e120' }}
+                        style={{ backgroundColor: "#4169e120" }}
                       >
-                        <Icon size={24} style={{ color: '#4169e1' }} />
+                        <Icon size={24} style={{ color: "#4169e1" }} />
                       </div>
                       <div>
                         <h3
                           className="font-semibold mb-1"
-                          style={{ color: '#001f54' }}
+                          style={{ color: "#001f54" }}
                         >
                           {item.title}
                         </h3>
@@ -299,19 +297,16 @@ export default function ContactPage() {
 
               {/* Social Links */}
               <div className="mt-8 pt-8 border-t border-gray-200">
-                <h3
-                  className="font-semibold mb-4"
-                  style={{ color: '#001f54' }}
-                >
+                <h3 className="font-semibold mb-4" style={{ color: "#001f54" }}>
                   Stay Connected
                 </h3>
                 <div className="flex gap-3">
-                  {['Twitter', 'LinkedIn', 'GitHub'].map((platform) => (
+                  {["Twitter", "LinkedIn", "GitHub"].map((platform) => (
                     <Link
                       key={platform}
                       to="#"
                       className="w-10 h-10 rounded-lg flex items-center justify-center border-2 border-gray-300 hover:border-[#4169e1] transition-all duration-300 hover:scale-110"
-                      style={{ color: '#4169e1' }}
+                      style={{ color: "#4169e1" }}
                     >
                       <span className="text-sm font-semibold">
                         {platform.charAt(0)}
@@ -327,7 +322,7 @@ export default function ContactPage() {
               <div className="bg-white rounded-2xl border-2 border-gray-200 p-8">
                 <h2
                   className="text-3xl font-bold mb-6"
-                  style={{ color: '#001f54' }}
+                  style={{ color: "#001f54" }}
                 >
                   Send us a Message
                 </h2>
@@ -335,11 +330,14 @@ export default function ContactPage() {
                 {isSuccess && (
                   <div
                     className="mb-6 p-4 rounded-lg flex items-center gap-3 animate-fade-in"
-                    style={{ backgroundColor: '#a7fc0020', border: '2px solid #a7fc00' }}
+                    style={{
+                      backgroundColor: "#a7fc0020",
+                      border: "2px solid #a7fc00",
+                    }}
                   >
-                    <CircleCheck size={24} style={{ color: '#a7fc00' }} />
+                    <CircleCheck size={24} style={{ color: "#a7fc00" }} />
                     <div>
-                      <p className="font-semibold" style={{ color: '#001f54' }}>
+                      <p className="font-semibold" style={{ color: "#001f54" }}>
                         Your message has been received.
                       </p>
                       <p className="text-sm text-gray-600">
@@ -351,7 +349,9 @@ export default function ContactPage() {
 
                 {submitError && (
                   <div className="mb-6 p-4 rounded-lg border-2 border-red-200 bg-red-50">
-                    <p className="font-semibold text-red-700">Unable to send message</p>
+                    <p className="font-semibold text-red-700">
+                      Unable to send message
+                    </p>
                     <p className="text-sm text-red-600 mt-1">{submitError}</p>
                   </div>
                 )}
@@ -362,7 +362,7 @@ export default function ContactPage() {
                     <label
                       htmlFor="name"
                       className="block mb-2 font-semibold"
-                      style={{ color: '#001f54' }}
+                      style={{ color: "#001f54" }}
                     >
                       Full Name <span className="text-red-500">*</span>
                     </label>
@@ -370,12 +370,12 @@ export default function ContactPage() {
                       type="text"
                       id="name"
                       value={formData.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      onBlur={() => handleBlur('name')}
+                      onChange={(e) => handleChange("name", e.target.value)}
+                      onBlur={() => handleBlur("name")}
                       className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-300 ${
                         errors.name && touched.name
-                          ? 'border-red-500 focus:border-red-500'
-                          : 'border-gray-300 focus:border-[#4169e1]'
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:border-[#4169e1]"
                       } outline-none`}
                       placeholder="John Doe"
                     />
@@ -389,7 +389,7 @@ export default function ContactPage() {
                     <label
                       htmlFor="email"
                       className="block mb-2 font-semibold"
-                      style={{ color: '#001f54' }}
+                      style={{ color: "#001f54" }}
                     >
                       Email Address <span className="text-red-500">*</span>
                     </label>
@@ -397,17 +397,19 @@ export default function ContactPage() {
                       type="email"
                       id="email"
                       value={formData.email}
-                      onChange={(e) => handleChange('email', e.target.value)}
-                      onBlur={() => handleBlur('email')}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      onBlur={() => handleBlur("email")}
                       className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-300 ${
                         errors.email && touched.email
-                          ? 'border-red-500 focus:border-red-500'
-                          : 'border-gray-300 focus:border-[#4169e1]'
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:border-[#4169e1]"
                       } outline-none`}
                       placeholder="john@example.com"
                     />
                     {errors.email && touched.email && (
-                      <p className="mt-2 text-sm text-red-500">{errors.email}</p>
+                      <p className="mt-2 text-sm text-red-500">
+                        {errors.email}
+                      </p>
                     )}
                   </div>
 
@@ -416,7 +418,7 @@ export default function ContactPage() {
                     <label
                       htmlFor="subject"
                       className="block mb-2 font-semibold"
-                      style={{ color: '#001f54' }}
+                      style={{ color: "#001f54" }}
                     >
                       Subject <span className="text-red-500">*</span>
                     </label>
@@ -424,17 +426,19 @@ export default function ContactPage() {
                       type="text"
                       id="subject"
                       value={formData.subject}
-                      onChange={(e) => handleChange('subject', e.target.value)}
-                      onBlur={() => handleBlur('subject')}
+                      onChange={(e) => handleChange("subject", e.target.value)}
+                      onBlur={() => handleBlur("subject")}
                       className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-300 ${
                         errors.subject && touched.subject
-                          ? 'border-red-500 focus:border-red-500'
-                          : 'border-gray-300 focus:border-[#4169e1]'
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:border-[#4169e1]"
                       } outline-none`}
                       placeholder="How can we help?"
                     />
                     {errors.subject && touched.subject && (
-                      <p className="mt-2 text-sm text-red-500">{errors.subject}</p>
+                      <p className="mt-2 text-sm text-red-500">
+                        {errors.subject}
+                      </p>
                     )}
                   </div>
 
@@ -443,7 +447,7 @@ export default function ContactPage() {
                     <label
                       htmlFor="message"
                       className="block mb-2 font-semibold"
-                      style={{ color: '#001f54' }}
+                      style={{ color: "#001f54" }}
                     >
                       Message <span className="text-red-500">*</span>
                     </label>
@@ -451,17 +455,19 @@ export default function ContactPage() {
                       id="message"
                       rows={6}
                       value={formData.message}
-                      onChange={(e) => handleChange('message', e.target.value)}
-                      onBlur={() => handleBlur('message')}
+                      onChange={(e) => handleChange("message", e.target.value)}
+                      onBlur={() => handleBlur("message")}
                       className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-300 resize-none ${
                         errors.message && touched.message
-                          ? 'border-red-500 focus:border-red-500'
-                          : 'border-gray-300 focus:border-[#4169e1]'
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-gray-300 focus:border-[#4169e1]"
                       } outline-none`}
                       placeholder="Tell us more about your inquiry..."
                     />
                     {errors.message && touched.message && (
-                      <p className="mt-2 text-sm text-red-500">{errors.message}</p>
+                      <p className="mt-2 text-sm text-red-500">
+                        {errors.message}
+                      </p>
                     )}
                   </div>
 
@@ -471,8 +477,8 @@ export default function ContactPage() {
                     disabled={isSubmitting}
                     className="w-full py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-3"
                     style={{
-                      backgroundColor: '#a7fc00',
-                      color: '#001f54',
+                      backgroundColor: "#a7fc00",
+                      color: "#001f54",
                     }}
                   >
                     {isSubmitting ? (
@@ -499,15 +505,12 @@ export default function ContactPage() {
       </section>
 
       {/* Map Section */}
-      <section
-        className="py-16"
-        style={{ backgroundColor: '#f8f9fa' }}
-      >
+      <section className="py-16" style={{ backgroundColor: "#f8f9fa" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2
               className="text-4xl font-bold mb-4"
-              style={{ color: '#001f54' }}
+              style={{ color: "#001f54" }}
             >
               Our Office Location
             </h2>
@@ -521,7 +524,7 @@ export default function ContactPage() {
             <div
               className="relative h-[400px] bg-gradient-to-br flex items-center justify-center"
               style={{
-                background: 'linear-gradient(135deg, #001f54 0%, #4169e1 100%)',
+                background: "linear-gradient(135deg, #001f54 0%, #4169e1 100%)",
               }}
               id="map"
             >
@@ -537,20 +540,21 @@ export default function ContactPage() {
                 <div className="text-center text-white">
                   <MapPin size={64} className="mx-auto mb-4 opacity-80" />
                   <h3 className="text-2xl font-bold mb-2">
-                    {companyProfile?.mapLabel ?? 'Our Location'}
+                    {companyProfile?.mapLabel ?? "Our Location"}
                   </h3>
                   <p className="text-lg opacity-90">
-                    {companyProfile?.mapAddress ?? '123 Tech Street'}
+                    {companyProfile?.mapAddress ?? "123 Tech Street"}
                   </p>
                   <p className="text-lg opacity-90">
-                    {companyProfile?.address ?? 'Abuja, Federal Capital Territory Nigeria'}
+                    {companyProfile?.address ??
+                      "Abuja, Federal Capital Territory Nigeria"}
                   </p>
                   <Link
-                    to={companyProfile?.mapUrl ?? 'https://maps.google.com'}
+                    to={companyProfile?.mapUrl ?? "https://maps.google.com"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block mt-6 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105"
-                    style={{ backgroundColor: '#a7fc00', color: '#001f54' }}
+                    style={{ backgroundColor: "#a7fc00", color: "#001f54" }}
                   >
                     View on Google Maps
                   </Link>
@@ -561,31 +565,26 @@ export default function ContactPage() {
             {/* Office Info */}
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
               <div className="p-6 text-center">
-                <h4
-                  className="font-semibold mb-2"
-                  style={{ color: '#001f54' }}
-                >
-                 Appointments
+                <h4 className="font-semibold mb-2" style={{ color: "#001f54" }}>
+                  Appointments
                 </h4>
-                <p className="text-gray-600">Visits are based on prior scheduling</p>
+                <p className="text-gray-600">
+                  Visits are based on prior scheduling
+                </p>
               </div>
               <div className="p-6 text-center">
-                <h4
-                  className="font-semibold mb-2"
-                  style={{ color: '#001f54' }}
-                >
+                <h4 className="font-semibold mb-2" style={{ color: "#001f54" }}>
                   Service Coverage
                 </h4>
                 <p className="text-gray-600">We serve clients nationwide</p>
               </div>
               <div className="p-6 text-center">
-                <h4
-                  className="font-semibold mb-2"
-                  style={{ color: '#001f54' }}
-                >
+                <h4 className="font-semibold mb-2" style={{ color: "#001f54" }}>
                   Support
                 </h4>
-                <p className="text-gray-600">Remote support available on request</p>
+                <p className="text-gray-600">
+                  Remote support available on request
+                </p>
               </div>
             </div>
           </div>
@@ -598,7 +597,7 @@ export default function ContactPage() {
           <div className="text-center mb-12">
             <h2
               className="text-4xl font-bold mb-4"
-              style={{ color: '#001f54' }}
+              style={{ color: "#001f54" }}
             >
               Frequently Asked Questions
             </h2>
@@ -610,20 +609,20 @@ export default function ContactPage() {
           <div className="space-y-6">
             {[
               {
-                q: 'What types of services do you provide?',
-                a: 'We deliver ICT solutions, security systems, project support, consulting and managed services tailored to public and private sector needs.',
+                q: "What types of services do you provide?",
+                a: "We deliver ICT solutions, security systems, project support, consulting and managed services tailored to public and private sector needs.",
               },
               {
-                q: 'How soon can you start a project?',
-                a: 'Project timelines depend on scope and requirements, but our team responds quickly with clear onboarding steps.',
+                q: "How soon can you start a project?",
+                a: "Project timelines depend on scope and requirements, but our team responds quickly with clear onboarding steps.",
               },
               {
-                q: 'Do you work with government and private organizations?',
-                a: 'Yes — we support government agencies, enterprises, SMEs and partnerships through compliant processes.',
+                q: "Do you work with government and private organizations?",
+                a: "Yes — we support government agencies, enterprises, SMEs and partnerships through compliant processes.",
               },
               {
-                q: 'Can we request a proposal or quotation?',
-                a: 'Absolutely. Provide details through the contact form and our team will prepare a tailored proposal.',
+                q: "Can we request a proposal or quotation?",
+                a: "Absolutely. Provide details through the contact form and our team will prepare a tailored proposal.",
               },
             ].map((faq, index) => (
               <div
@@ -632,7 +631,7 @@ export default function ContactPage() {
               >
                 <h3
                   className="text-lg font-semibold mb-2"
-                  style={{ color: '#001f54' }}
+                  style={{ color: "#001f54" }}
                 >
                   {faq.q}
                 </h3>
