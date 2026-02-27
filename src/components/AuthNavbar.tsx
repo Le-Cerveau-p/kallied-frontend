@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
+  getNotifications,
+  getUnreadNotificationCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "../api/notifications";
+import {
   Bell,
   LayoutDashboard,
   User,
@@ -19,6 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { getCurrentUser } from "../api/users";
 
 interface DashboardNavbarProps {
   currentPage?: string;
@@ -27,6 +35,17 @@ interface DashboardNavbarProps {
   userAvatar?: string;
   notificationCount?: number;
 }
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
+}
+
+type UserRole = "ADMIN" | "STAFF" | "CLIENT";
 
 export default function AuthNavbar({
   currentPage = "dashboard",
@@ -38,7 +57,13 @@ export default function AuthNavbar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [liveNotificationCount, setLiveNotificationCount] =
+    useState(notificationCount);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const navItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -70,6 +95,166 @@ export default function AuthNavbar({
       clearTimeout(inactivityTimer);
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadUnreadCount = async () => {
+      try {
+        const count = await getUnreadNotificationCount();
+        if (mounted) setLiveNotificationCount(count);
+      } catch {
+        if (mounted) setLiveNotificationCount(notificationCount);
+      }
+    };
+
+    loadUnreadCount();
+    const intervalId = window.setInterval(loadUnreadCount, 30000);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [notificationCount]);
+
+  useEffect(() => {
+    if (!isNotificationOpen) return;
+
+    const loadNotifications = async () => {
+      try {
+        const data = await getNotifications(10);
+        setNotifications(Array.isArray(data) ? data : []);
+      } catch {
+        setNotifications([]);
+      }
+    };
+
+    loadNotifications();
+  }, [isNotificationOpen]);
+
+  const handleMarkNotificationRead = async (id: string) => {
+    const target = notifications.find((item) => item.id === id);
+    if (!target || target.read) return;
+
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, read: true } : item)),
+    );
+    setLiveNotificationCount((prev) => Math.max(0, prev - 1));
+
+    try {
+      await markNotificationRead(id);
+    } catch {
+      setNotifications((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, read: false } : item)),
+      );
+      setLiveNotificationCount((prev) => prev + 1);
+    }
+  };
+
+  const getNotificationRoute = (
+    type: string,
+    role?: UserRole | null,
+  ): string => {
+    const normalizedType = type?.toUpperCase?.() ?? "";
+    console.log(`normalizedType: ${normalizedType}`);
+
+    if (role === "ADMIN") {
+      if (
+        normalizedType.includes("PROCUREMENT") ||
+        normalizedType.startsWith("PO_")
+      ) {
+        return "/admin/procurements";
+      }
+      if (
+        normalizedType.includes("INVOICE") ||
+        normalizedType.includes("PAYMENT")
+      ) {
+        return "/admin/billing";
+      }
+      if (normalizedType.includes("PROJECT")) {
+        return "/admin/projects";
+      }
+      return "/admin/dashboard";
+    }
+
+    if (role === "STAFF") {
+      if (
+        normalizedType.includes("PROCUREMENT") ||
+        normalizedType.startsWith("PO_")
+      ) {
+        return "/staff/projects";
+      }
+      if (
+        normalizedType.includes("INVOICE") ||
+        normalizedType.includes("PAYMENT")
+      ) {
+        return "/staff/invoices";
+      }
+      if (normalizedType.includes("PROJECT")) {
+        return "/staff/projects";
+      }
+      return "/staff/dashboard";
+    }
+
+    if (role === "CLIENT") {
+      if (
+        normalizedType.includes("PROCUREMENT") ||
+        normalizedType.startsWith("PO_")
+      ) {
+        return "/client/requests";
+      }
+      if (
+        normalizedType.includes("INVOICE") ||
+        normalizedType.includes("PAYMENT")
+      ) {
+        return "/client/invoices";
+      }
+      if (normalizedType.includes("PROJECT")) {
+        return "/client/projects";
+      }
+      return "/client/dashboard";
+    }
+
+    return "/dashboard";
+  };
+
+  const handleNotificationClick = async (item: NotificationItem) => {
+    await handleMarkNotificationRead(item.id);
+    setIsNotificationOpen(false);
+
+    const role = (getCurrentUser()?.role ??
+      localStorage.getItem("role")) as UserRole | null;
+    const destination = getNotificationRoute(item.type, role);
+    navigate(destination);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (isMarkingAllRead || notifications.length === 0) return;
+
+    const unreadBefore = notifications.filter((item) => !item.read).length;
+    if (unreadBefore === 0) return;
+
+    setIsMarkingAllRead(true);
+    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+    setLiveNotificationCount(0);
+
+    try {
+      await markAllNotificationsRead();
+    } catch {
+      const count = await getUnreadNotificationCount().catch(
+        () => unreadBefore,
+      );
+      setLiveNotificationCount(count);
+    } finally {
+      setIsMarkingAllRead(false);
+    }
+  };
+
+  const formatNotificationTime = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString();
+  };
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -160,20 +345,89 @@ export default function AuthNavbar({
           {/* Right Section - Notifications & User Menu */}
           <div className="flex items-center gap-4">
             {/* Notification Bell */}
-            <button
-              className="relative p-2 rounded-lg text-white hover:bg-[#4169e1] transition-colors duration-200"
-              aria-label="Notifications"
+            <DropdownMenu
+              open={isNotificationOpen}
+              onOpenChange={setIsNotificationOpen}
             >
-              <Bell size={20} />
-              {notificationCount > 0 && (
-                <span
-                  className="absolute top-0 right-0 flex items-center justify-center text-xs text-[#001f54] rounded-full min-w-[18px] h-[18px] px-1"
-                  style={{ backgroundColor: "#a7fc00" }}
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="relative p-2 rounded-lg text-white hover:bg-[#4169e1] transition-colors duration-200"
+                  aria-label="Notifications"
                 >
-                  {notificationCount > 9 ? "9+" : notificationCount}
-                </span>
-              )}
-            </button>
+                  <Bell size={20} />
+                  {liveNotificationCount > 0 && (
+                    <span
+                      className="absolute top-0 right-0 flex items-center justify-center text-xs text-[#001f54] rounded-full min-w-[18px] h-[18px] px-1"
+                      style={{ backgroundColor: "#a7fc00" }}
+                    >
+                      {liveNotificationCount > 9 ? "9+" : liveNotificationCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-80 mt-2 p-0"
+                style={{ backgroundColor: "white" }}
+              >
+                <div className="flex items-center justify-between px-3 py-2 border-b">
+                  <p
+                    className="font-semibold text-sm"
+                    style={{ color: "#001f54" }}
+                  >
+                    Notifications
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleMarkAllNotificationsRead}
+                    disabled={isMarkingAllRead || liveNotificationCount === 0}
+                    className="text-xs font-medium text-[#4169e1] disabled:text-gray-400"
+                  >
+                    Mark all read
+                  </button>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="px-3 py-6 text-sm text-center text-gray-500">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleNotificationClick(item)}
+                        className={`w-full text-left px-3 py-2 border-b last:border-b-0 hover:bg-gray-50 transition-colors ${
+                          item.read ? "bg-white" : "bg-blue-50/40"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p
+                            className={`text-sm ${
+                              item.read
+                                ? "font-medium text-gray-700"
+                                : "font-semibold text-[#001f54]"
+                            }`}
+                          >
+                            {item.title}
+                          </p>
+                          {!item.read && (
+                            <span className="mt-1 inline-block h-2 w-2 rounded-full bg-[#4169e1]" />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                          {item.message}
+                        </p>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          {formatNotificationTime(item.createdAt)}
+                        </p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* User Avatar Dropdown - Desktop */}
             <div className="hidden md:block">
