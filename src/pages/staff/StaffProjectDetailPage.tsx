@@ -231,8 +231,6 @@ export default function StaffProjectDetailPage() {
     const data = await getStaffProjectById(id);
     setProject(data);
     setUpdates(data.updates);
-    console.log("projec", data);
-    console.log("projec", data.procurementRequests);
   }, [id]);
 
   useEffect(() => {

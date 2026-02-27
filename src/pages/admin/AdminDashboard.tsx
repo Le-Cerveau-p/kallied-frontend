@@ -77,9 +77,6 @@ export default function AdminDashboard() {
       setRecentActivity(dashboard.recentActivity);
       setPendingProjects(projects);
       setPendingProcurement(procurements);
-
-      console.log("dash: ", dashboard);
-      console.log("pend: ", projects);
     }
 
     loadDashboard();

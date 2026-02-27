@@ -214,7 +214,6 @@ export default function AdminProcurementManagement() {
 
   // Generate Purchase Order
   const generatePO = (request: ProcurementRequest) => {
-    console.log("Generating PO for:", request.id);
     setToastMessage(
       `Purchase Order generated for ${request.id}. Document download will be available soon.`,
     );

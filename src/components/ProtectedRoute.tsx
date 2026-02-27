@@ -7,12 +7,10 @@ export default function ProtectedRoute({ children, roles }) {
 
   // Not logged in
   if (!user) return <ErrorPage type="401" />;
-  console.log(roles)
-  console.log("user role: "+user.role)
 
   // Role not allowed
   if (roles && !roles.includes(user.role)) {
-    return <ErrorPage type="403" />;   // Forbidden
+    return <ErrorPage type="403" />; // Forbidden
   }
 
   return children;

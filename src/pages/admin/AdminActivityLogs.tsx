@@ -121,8 +121,6 @@ export default function AdminActivityLogs() {
     try {
       const res = await getCompanyUsers();
       setUsers(res);
-
-      console.log("Got users", res);
     } catch (err) {
       console.error("Failed to fetch users", err);
     }

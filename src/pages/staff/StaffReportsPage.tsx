@@ -265,7 +265,6 @@ export default function StaffReportsPage() {
   };
 
   const handleSubmitReport = (report: Report) => {
-    console.log("Submitting report:", report.name);
     // Would update the status to 'Submitted'
   };
 

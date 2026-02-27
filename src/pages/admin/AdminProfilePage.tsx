@@ -37,7 +37,6 @@ export default function ProfilePage() {
       try {
         const user = await getCurrentUser();
         setUserData(user);
-        console.log("user ", userData);
       } catch (err) {
         console.error(err);
       }

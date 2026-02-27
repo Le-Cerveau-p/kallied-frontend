@@ -123,7 +123,6 @@ export default function AdminProjectsManagement() {
     getAdminProjects()
       .then(setProjects)
       .finally(() => setLoading(false));
-    console.log(projects);
   }, []);
 
   const formatStatus = (status: Project["status"]) => {
@@ -158,7 +157,6 @@ export default function AdminProjectsManagement() {
   };
 
   const filteredProjects = projects.filter((project) => {
-    console.log(projects);
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.client.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -203,7 +201,6 @@ export default function AdminProjectsManagement() {
   };
 
   const handleCreateProject = async () => {
-    console.log("Creating");
     const parsedBudget = newProjectBudget.trim()
       ? Number(newProjectBudget)
       : undefined;

@@ -156,7 +156,6 @@ export default function AuthNavbar({
     role?: UserRole | null,
   ): string => {
     const normalizedType = type?.toUpperCase?.() ?? "";
-    console.log(`normalizedType: ${normalizedType}`);
 
     if (role === "ADMIN") {
       if (
