@@ -35,6 +35,9 @@ interface CompanyProfile {
   address?: string;
   email?: string;
   phone?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  whatsappUrl?: string;
   mapLabel?: string;
   mapAddress?: string;
   mapUrl?: string;
@@ -61,6 +64,10 @@ export default function ContactPage() {
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(
     null,
   );
+
+  const facebookUrl = companyProfile?.facebookUrl ?? "";
+  const twitterUrl = companyProfile?.twitterUrl ?? "";
+  const whatsappUrl = companyProfile?.whatsappUrl ?? "";
 
   const validateEmail = (email: string): boolean => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+?/;
@@ -190,8 +197,8 @@ export default function ContactPage() {
     {
       icon: Phone,
       title: "Call Us",
-      value: companyProfile?.phone ?? "+234 (0) 802-000-0000",
-      link: `tel:${(companyProfile?.phone ?? "+234 (0) 802-000-0000").replace(/\s+/g, "")}`,
+      value: companyProfile?.phone ?? "+234 (0) 703-800-1614",
+      link: `tel:${(companyProfile?.phone ?? "+234 (0) 703-800-1614").replace(/\s+/g, "")}`,
     },
     {
       icon: MapPin,
@@ -301,18 +308,57 @@ export default function ContactPage() {
                   Stay Connected
                 </h3>
                 <div className="flex gap-3">
-                  {["Twitter", "LinkedIn", "GitHub"].map((platform) => (
-                    <Link
-                      key={platform}
-                      to="#"
-                      className="w-10 h-10 rounded-lg flex items-center justify-center border-2 border-gray-300 hover:border-[#4169e1] transition-all duration-300 hover:scale-110"
-                      style={{ color: "#4169e1" }}
+                  <a
+                    href={facebookUrl || "#"}
+                    target={facebookUrl ? "_blank" : undefined}
+                    rel={facebookUrl ? "noopener noreferrer" : undefined}
+                    aria-label="Facebook"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center border-2 border-gray-300 hover:border-[#4169e1] transition-all duration-300 hover:scale-110"
+                    style={{ color: "#4169e1" }}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="w-5 h-5"
+                      fill="currentColor"
                     >
-                      <span className="text-sm font-semibold">
-                        {platform.charAt(0)}
-                      </span>
-                    </Link>
-                  ))}
+                      <path d="M13.5 9H16V6h-2.5C10.91 6 10 7.57 10 9.71V12H8v3h2v6h3v-6h2.47l.53-3H13V9.71c0-.45.23-.71.5-.71Z" />
+                    </svg>
+                  </a>
+                  <a
+                    href={twitterUrl || "#"}
+                    target={twitterUrl ? "_blank" : undefined}
+                    rel={twitterUrl ? "noopener noreferrer" : undefined}
+                    aria-label="Twitter"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center border-2 border-gray-300 hover:border-[#4169e1] transition-all duration-300 hover:scale-110"
+                    style={{ color: "#4169e1" }}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="w-5 h-5"
+                      fill="currentColor"
+                    >
+                      <path d="M18.15 3H21l-6.2 7.08L22.5 21h-6.06l-4.35-5.7L6.99 21H4.14l6.63-7.56L1.5 3h6.18l3.96 5.24L18.15 3Zm-1.1 16h1.67L7.9 4.93H6.14L17.05 19Z" />
+                    </svg>
+                  </a>
+                  <a
+                    href={whatsappUrl || "#"}
+                    target={whatsappUrl ? "_blank" : undefined}
+                    rel={whatsappUrl ? "noopener noreferrer" : undefined}
+                    aria-label="WhatsApp"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center border-2 border-gray-300 hover:border-[#4169e1] transition-all duration-300 hover:scale-110"
+                    style={{ color: "#4169e1" }}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="w-5 h-5"
+                      fill="currentColor"
+                    >
+                      <path d="M12.04 3C7.06 3 3 7.03 3 12c0 1.6.42 3.15 1.21 4.52L3 21l4.65-1.2A9.02 9.02 0 0 0 12.04 21C17 21 21 16.97 21 12S17 3 12.04 3Zm4.93 12.34c-.2.56-1.17 1.07-1.6 1.14-.41.07-.93.1-1.5-.1-.35-.11-.81-.27-1.4-.55-2.47-1.08-4.08-3.6-4.2-3.77-.12-.17-1-1.33-1-2.54 0-1.2.63-1.79.85-2.03.23-.25.5-.31.67-.31.17 0 .34 0 .48.01.16.01.37-.06.58.44.2.48.68 1.66.74 1.78.06.12.1.26.02.42-.08.17-.12.27-.24.42-.12.14-.25.32-.36.43-.12.12-.24.25-.1.48.14.24.62 1.02 1.34 1.66.93.83 1.71 1.09 1.95 1.21.24.12.38.1.52-.06.14-.16.6-.7.76-.94.16-.24.32-.2.53-.12.22.08 1.38.65 1.62.76.24.12.4.18.46.28.06.1.06.6-.14 1.16Z" />
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>
@@ -542,9 +588,9 @@ export default function ContactPage() {
                   <h3 className="text-2xl font-bold mb-2">
                     {companyProfile?.mapLabel ?? "Our Location"}
                   </h3>
-                  <p className="text-lg opacity-90">
+                  {/* <p className="text-lg opacity-90">
                     {companyProfile?.mapAddress ?? "123 Tech Street"}
-                  </p>
+                  </p> */}
                   <p className="text-lg opacity-90">
                     {companyProfile?.address ??
                       "Abuja, Federal Capital Territory Nigeria"}
