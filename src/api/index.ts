@@ -1,16 +1,31 @@
 import axios from "axios";
 
-// export const api = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
-// });
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "http://localhost:3000";
+    }
+  }
+
+  return "https://k-allied.org/api";
+};
+
+export const api = axios.create({
+  baseURL: getApiBaseUrl(),
+});
 
 // export const api = axios.create({
 //   baseURL: "https://kallied-backend-production.up.railway.app",
 // });
 
-export const api = axios.create({
-  baseURL: "https://k-allied.org/api",
-});
+// export const api = axios.create({
+//   baseURL: "https://k-allied.org/api",
+// });
 
 // Attach token automatically
 api.interceptors.request.use((config) => {

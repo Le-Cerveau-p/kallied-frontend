@@ -85,6 +85,7 @@ export default function AdminUserManagement() {
   const [otpTimer, setOtpTimer] = useState(300); // 5 minutes in seconds
   const [isOTPExpired, setIsOTPExpired] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,
   );
@@ -163,6 +164,17 @@ export default function AdminUserManagement() {
     return () => clearInterval(interval);
   }, [showOTPDialog, otpTimer, isOTPExpired]);
 
+  // Resend cooldown countdown
+  useEffect(() => {
+    let interval: number | undefined;
+    if (showOTPDialog && otpSent && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => (prev <= 1 ? 0 : prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showOTPDialog, otpSent, resendTimer]);
+
   // Initialize OTP request
   const requestOTP = async (action: PendingAction) => {
     setPendingAction(action);
@@ -171,6 +183,7 @@ export default function AdminUserManagement() {
     setOtpTimer(300); // Reset to 5 minutes
     setIsOTPExpired(false);
     setOtpSent(false);
+    setResendTimer(0);
     setOtpRecipientEmail("");
     setShowOTPDialog(true);
   };
@@ -201,6 +214,7 @@ export default function AdminUserManagement() {
         setAuthorizedEmail(email);
       }
       setOtpSent(true);
+      setResendTimer(60);
     } catch (error: any) {
       const message = error?.response?.data?.message || "Failed to send OTP.";
       setOtpError(message);
@@ -799,10 +813,12 @@ export default function AdminUserManagement() {
                 onClick={handleResendOTP}
                 className="text-sm flex items-center gap-1 hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ color: "#4169e1" }}
-                disabled={!otpRecipientEmail.trim()}
+                disabled={!otpRecipientEmail.trim() || resendTimer > 0}
               >
                 <RefreshCw className="w-4 h-4" />
-                Resend OTP
+                {resendTimer > 0
+                  ? `Resend OTP (${formatTime(resendTimer)})`
+                  : "Resend OTP"}
               </button>
             </div>
 
@@ -814,6 +830,7 @@ export default function AdminUserManagement() {
                   setOtpError("");
                   setPendingAction(null);
                   setOtpSent(false);
+                  setResendTimer(0);
                 }}
                 className="flex-1 px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
                 style={{ color: "#001f54" }}

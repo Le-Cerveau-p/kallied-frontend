@@ -5,11 +5,22 @@ let socketToken = "";
 let diagnosticsBound = false;
 
 export const getChatSocket = () => {
-  // const baseURL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-  // const baseURL =
-  //   import.meta.env.VITE_API_URL ||
-  //   "https://kallied-backend-production.up.railway.app";
-  const baseURL = import.meta.env.VITE_API_URL || "https://k-allied.org/api";
+  const getSocketBaseUrl = () => {
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
+
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname;
+      if (host === "localhost" || host === "127.0.0.1") {
+        return "http://localhost:3000";
+      }
+    }
+
+    return "https://k-allied.org/api";
+  };
+
+  const baseURL = getSocketBaseUrl();
   const token = localStorage.getItem("token") ?? "";
 
   if (socket && socketToken !== token) {

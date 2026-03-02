@@ -68,6 +68,20 @@ export default function ContactPage() {
   const facebookUrl = companyProfile?.facebookUrl ?? "";
   const twitterUrl = companyProfile?.twitterUrl ?? "";
   const whatsappUrl = companyProfile?.whatsappUrl ?? "";
+  const mapEmbedUrl = companyProfile?.mapEmbedUrl ?? "";
+
+  const isValidMapEmbed = (value: string) => {
+    if (!value) return false;
+    try {
+      const url = new URL(value, window.location.origin);
+      if (typeof window !== "undefined" && url.origin === window.location.origin) {
+        return false;
+      }
+      return /google\.(com|com\.ng)\/maps/.test(url.href) || /maps\.google/.test(url.href);
+    } catch {
+      return false;
+    }
+  };
 
   const validateEmail = (email: string): boolean => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+?/;
@@ -176,6 +190,7 @@ export default function ContactPage() {
         const profile = await getCompanyProfile();
         if (isMounted) {
           setCompanyProfile(profile);
+          console.log("Loaded company profile:", profile);
         }
       } catch (err) {
         console.error(err);
@@ -574,10 +589,10 @@ export default function ContactPage() {
               }}
               id="map"
             >
-              {companyProfile?.mapEmbedUrl ? (
+              {isValidMapEmbed(mapEmbedUrl) ? (
                 <iframe
                   title="Company Location Map"
-                  src={companyProfile.mapEmbedUrl}
+                  src={mapEmbedUrl}
                   className="w-full h-full border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
