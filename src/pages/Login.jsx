@@ -79,7 +79,11 @@ export default function Login() {
     script.defer = true;
     script.id = "google-identity-script";
     script.onload = () => {
+      console.info("[google-login] GSI script loaded");
       googleReadyRef.current = true;
+    };
+    script.onerror = () => {
+      console.error("[google-login] Failed to load GSI script");
     };
     document.body.appendChild(script);
   }, [googleClientId]);
@@ -128,6 +132,7 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     if (!googleClientId) {
+      console.error("[google-login] Missing VITE_GOOGLE_CLIENT_ID");
       setErrors({ api: "Google client ID is not configured." });
       return;
     }
@@ -138,6 +143,10 @@ export default function Login() {
 
     const google = window.google;
     if (!googleReadyRef.current || !google?.accounts?.id) {
+      console.error("[google-login] GSI not ready", {
+        scriptLoaded: googleReadyRef.current,
+        hasGoogle: Boolean(google),
+      });
       setErrors({ api: "Google Sign-In is not available yet. Try again." });
       return;
     }
