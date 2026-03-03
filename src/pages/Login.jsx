@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/index";
 import { Link } from "react-router-dom";
 import {
@@ -32,8 +32,11 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { setUser } = useAuth();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const googleReadyRef = useRef(false);
+  const googlePromptActiveRef = useRef(false);
 
   const handleAuthSuccess = (res) => {
     const token = res.access_token;
@@ -65,13 +68,19 @@ export default function Login() {
     if (!googleClientId) return;
 
     const existing = document.getElementById("google-identity-script");
-    if (existing) return;
+    if (existing) {
+      googleReadyRef.current = true;
+      return;
+    }
 
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
     script.defer = true;
     script.id = "google-identity-script";
+    script.onload = () => {
+      googleReadyRef.current = true;
+    };
     document.body.appendChild(script);
   }, [googleClientId]);
 
@@ -123,8 +132,12 @@ export default function Login() {
       return;
     }
 
+    if (googlePromptActiveRef.current) {
+      return;
+    }
+
     const google = window.google;
-    if (!google?.accounts?.id) {
+    if (!googleReadyRef.current || !google?.accounts?.id) {
       setErrors({ api: "Google Sign-In is not available yet. Try again." });
       return;
     }
@@ -132,6 +145,8 @@ export default function Login() {
     google.accounts.id.initialize({
       client_id: googleClientId,
       callback: async (response) => {
+        googlePromptActiveRef.current = false;
+        setGoogleLoading(false);
         try {
           const res = await loginWithGoogle(response.credential);
           if (res?.requiresSignup) {
@@ -149,7 +164,18 @@ export default function Login() {
       },
     });
 
-    google.accounts.id.prompt();
+    googlePromptActiveRef.current = true;
+    setGoogleLoading(true);
+    google.accounts.id.prompt((notification) => {
+      if (
+        notification.isNotDisplayed() ||
+        notification.isSkippedMoment() ||
+        notification.isDismissedMoment()
+      ) {
+        googlePromptActiveRef.current = false;
+        setGoogleLoading(false);
+      }
+    });
   };
 
   return (
@@ -275,7 +301,8 @@ export default function Login() {
           <button
             type="button"
             onClick={handleGoogleLogin}
-            className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50"
+            disabled={googleLoading}
+            className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <img
               src="https://www.svgrepo.com/show/475656/google-color.svg"
