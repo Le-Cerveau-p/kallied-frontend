@@ -153,6 +153,7 @@ export default function Login() {
 
     google.accounts.id.initialize({
       client_id: googleClientId,
+      use_fedcm_for_prompt: true,
       callback: async (response) => {
         googlePromptActiveRef.current = false;
         setGoogleLoading(false);
@@ -175,12 +176,20 @@ export default function Login() {
 
     googlePromptActiveRef.current = true;
     setGoogleLoading(true);
+    google.accounts.id.cancel();
     google.accounts.id.prompt((notification) => {
-      if (
-        notification.isNotDisplayed() ||
-        notification.isSkippedMoment() ||
-        notification.isDismissedMoment()
-      ) {
+      if (notification.isNotDisplayed()) {
+        const reason = notification.getNotDisplayedReason();
+        console.warn("[google-login] prompt not displayed", reason);
+        setErrors({
+          api:
+            reason === "not_allowed"
+              ? "Google Sign-In blocked by browser settings or extensions."
+              : "Google Sign-In could not be displayed. Check OAuth origins.",
+        });
+      }
+
+      if (notification.isSkippedMoment() || notification.isDismissedMoment()) {
         googlePromptActiveRef.current = false;
         setGoogleLoading(false);
       }
