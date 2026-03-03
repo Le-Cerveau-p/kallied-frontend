@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api/index";
 import { Link } from "react-router-dom";
 import {
@@ -24,6 +24,7 @@ import {
   X,
   Trash2,
 } from "lucide-react";
+import { loginWithGoogle } from "../api/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -32,6 +33,47 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const handleAuthSuccess = (res) => {
+    const token = res.access_token;
+    const expiresIn = res.expiresIn;
+    const expiryTime = Date.now() + expiresIn * 1000;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("token_expiry", expiryTime.toString());
+    localStorage.setItem("role", res.user.role);
+    localStorage.setItem("email", res.user.email);
+    localStorage.setItem("username", res.user.name);
+
+    setUser({
+      email: res.user.email,
+      role: res.user.role,
+      token,
+    });
+
+    if (res.user.role === "ADMIN") {
+      window.location.href = "/admin/dashboard";
+    } else if (res.user.role === "STAFF") {
+      window.location.href = "/staff/dashboard";
+    } else {
+      window.location.href = "/client/dashboard";
+    }
+  };
+
+  useEffect(() => {
+    if (!googleClientId) return;
+
+    const existing = document.getElementById("google-identity-script");
+    if (existing) return;
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.id = "google-identity-script";
+    document.body.appendChild(script);
+  }, [googleClientId]);
 
   const validate = () => {
     const newErrors = {};
@@ -65,32 +107,7 @@ export default function Login() {
         password,
       });
 
-      // save token
-      const token = res.data.access_token;
-      const expiresIn = res.data.expiresIn; // seconds (1800)
-
-      const expiryTime = Date.now() + expiresIn * 1000;
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("token_expiry", expiryTime.toString());
-      localStorage.setItem("role", res.data.user.role);
-      localStorage.setItem("email", res.data.user.email);
-      localStorage.setItem("username", res.data.user.name);
-
-      setUser({
-        email: res.data.user.email,
-        role: res.data.user.role,
-        token,
-      });
-
-      // redirect based on role
-      if (res.data.user.role === "ADMIN") {
-        window.location.href = "/admin/dashboard";
-      } else if (res.data.user.role === "STAFF") {
-        window.location.href = "/staff/dashboard";
-      } else {
-        window.location.href = "/client/dashboard";
-      }
+      handleAuthSuccess(res.data);
     } catch (err) {
       setErrors({
         api: err?.response?.data?.message || "Login failed",
@@ -98,6 +115,41 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    if (!googleClientId) {
+      setErrors({ api: "Google client ID is not configured." });
+      return;
+    }
+
+    const google = window.google;
+    if (!google?.accounts?.id) {
+      setErrors({ api: "Google Sign-In is not available yet. Try again." });
+      return;
+    }
+
+    google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: async (response) => {
+        try {
+          const res = await loginWithGoogle(response.credential);
+          if (res?.requiresSignup) {
+            window.location.href = "/signup";
+            return;
+          }
+          handleAuthSuccess(res);
+        } catch (err) {
+          setErrors({
+            api:
+              err?.response?.data?.message ||
+              "Google login failed. Please try again.",
+          });
+        }
+      },
+    });
+
+    google.accounts.id.prompt();
   };
 
   return (
@@ -222,6 +274,7 @@ export default function Login() {
           {/* Google button */}
           <button
             type="button"
+            onClick={handleGoogleLogin}
             className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50"
           >
             <img

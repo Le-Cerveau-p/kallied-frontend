@@ -8,3 +8,6 @@ export const resetPassword = (payload: {
   otp: string;
   newPassword: string;
 }) => api.post("/auth/password/reset", payload).then((res) => res.data);
+
+export const loginWithGoogle = (idToken: string) =>
+  api.post("/auth/google", { idToken }).then((res) => res.data);
