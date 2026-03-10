@@ -68,8 +68,47 @@ export default function Login() {
     if (!googleClientId) return;
 
     const existing = document.getElementById("google-identity-script");
-    if (existing) {
+
+    const initializeGoogle = () => {
+      const google = window?.google;
+
+      if (!google?.accounts?.id) return;
+
+      google.accounts.id.initialize({
+        client_id: googleClientId,
+        use_fedcm_for_prompt: true,
+        callback: async (response) => {
+          googlePromptActiveRef.current = false;
+          setGoogleLoading(false);
+
+          try {
+            if (!response?.credential) {
+              throw new Error("No credential returned from Google");
+            }
+
+            const res = await loginWithGoogle(response.credential);
+
+            if (res?.requiresSignup) {
+              window.location.href = "/signup";
+              return;
+            }
+
+            handleAuthSuccess(res);
+          } catch (err) {
+            setErrors({
+              api:
+                err?.response?.data?.message ||
+                "Google login failed. Please try again.",
+            });
+          }
+        },
+      });
+
       googleReadyRef.current = true;
+    };
+
+    if (existing) {
+      initializeGoogle();
       return;
     }
 
@@ -78,13 +117,16 @@ export default function Login() {
     script.async = true;
     script.defer = true;
     script.id = "google-identity-script";
+
     script.onload = () => {
       console.info("[google-login] GSI script loaded");
-      googleReadyRef.current = true;
+      initializeGoogle();
     };
+
     script.onerror = () => {
       console.error("[google-login] Failed to load GSI script");
     };
+
     document.body.appendChild(script);
   }, [googleClientId]);
 
@@ -131,62 +173,46 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
+    if (googleLoading) return;
     if (!googleClientId) {
       console.error("[google-login] Missing VITE_GOOGLE_CLIENT_ID");
       setErrors({ api: "Google client ID is not configured." });
       return;
     }
+    console.log("googleClientId:", googleClientId);
 
-    if (googlePromptActiveRef.current) {
-      return;
-    }
+    const google = window?.google;
 
-    const google = window.google;
     if (!googleReadyRef.current || !google?.accounts?.id) {
       console.error("[google-login] GSI not ready", {
         scriptLoaded: googleReadyRef.current,
         hasGoogle: Boolean(google),
       });
+
       setErrors({ api: "Google Sign-In is not available yet. Try again." });
       return;
     }
 
-    google.accounts.id.initialize({
-      client_id: googleClientId,
-      use_fedcm_for_prompt: true,
-      callback: async (response) => {
-        googlePromptActiveRef.current = false;
-        setGoogleLoading(false);
-        try {
-          const res = await loginWithGoogle(response.credential);
-          if (res?.requiresSignup) {
-            window.location.href = "/signup";
-            return;
-          }
-          handleAuthSuccess(res);
-        } catch (err) {
-          setErrors({
-            api:
-              err?.response?.data?.message ||
-              "Google login failed. Please try again.",
-          });
-        }
-      },
-    });
+    if (googlePromptActiveRef.current) return;
 
     googlePromptActiveRef.current = true;
     setGoogleLoading(true);
-    google.accounts.id.cancel();
+
     google.accounts.id.prompt((notification) => {
       if (notification.isNotDisplayed()) {
         const reason = notification.getNotDisplayedReason();
+
         console.warn("[google-login] prompt not displayed", reason);
+
         setErrors({
           api:
             reason === "not_allowed"
               ? "Google Sign-In blocked by browser settings or extensions."
               : "Google Sign-In could not be displayed. Check OAuth origins.",
         });
+
+        googlePromptActiveRef.current = false;
+        setGoogleLoading(false);
       }
 
       if (notification.isSkippedMoment() || notification.isDismissedMoment()) {
@@ -278,7 +304,10 @@ export default function Login() {
 
           {/* Forgot password */}
           <div className="text-right">
-            <Link to="/reset-password" className="text-sm text-blue-600 hover:underline">
+            <Link
+              to="/reset-password"
+              className="text-sm text-blue-600 hover:underline"
+            >
               Forgot Password?
             </Link>
           </div>
@@ -322,12 +351,21 @@ export default function Login() {
             disabled={googleLoading}
             className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <img
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              alt="Google"
-              className="w-5 h-5"
-            />
-            Continue with Google
+            {googleLoading ? (
+              <>
+                <Loader size={20} className="animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                Continue with Google
+              </>
+            )}
           </button>
 
           {/* Footer */}
