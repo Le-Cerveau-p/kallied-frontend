@@ -764,9 +764,9 @@ export default function AdminUserManagement() {
                 placeholder="authorized@gmail.com"
                 disabled={otpSent}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              {/* <p className="text-xs text-gray-500 mt-1">
                 Approved emails: aremupp@gmail.com, lecerveau.techcity@gmail.com
-              </p>
+              </p> */}
             </div>
 
             <div className="mb-4">
