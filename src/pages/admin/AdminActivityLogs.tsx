@@ -77,6 +77,8 @@ export default function AdminActivityLogs() {
   const [entityFilter, setEntityFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [dateRange, setDateRange] = useState("last-7-days");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [logs, setLogs] = useState<any[]>([]);
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -85,7 +87,14 @@ export default function AdminActivityLogs() {
 
   useEffect(() => {
     fetchLogs();
-  }, [page, entityFilter, userFilter, dateRange]);
+  }, [
+    page,
+    entityFilter,
+    userFilter,
+    dateRange,
+    customStartDate,
+    customEndDate,
+  ]);
 
   useEffect(() => {
     fetchUsers();
@@ -99,15 +108,72 @@ export default function AdminActivityLogs() {
     return entity.charAt(0) + entity.slice(1).toLowerCase();
   };
 
+  const startOfDay = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const endOfDay = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+
+  const getDateRangeParams = () => {
+    const now = new Date();
+
+    switch (dateRange) {
+      case "today": {
+        return {
+          startDate: startOfDay(now).toISOString(),
+          endDate: endOfDay(now).toISOString(),
+        };
+      }
+      case "last-7-days": {
+        const start = new Date(now);
+        start.setDate(now.getDate() - 6);
+        return {
+          startDate: startOfDay(start).toISOString(),
+          endDate: endOfDay(now).toISOString(),
+        };
+      }
+      case "last-30-days": {
+        const start = new Date(now);
+        start.setDate(now.getDate() - 29);
+        return {
+          startDate: startOfDay(start).toISOString(),
+          endDate: endOfDay(now).toISOString(),
+        };
+      }
+      case "last-90-days": {
+        const start = new Date(now);
+        start.setDate(now.getDate() - 89);
+        return {
+          startDate: startOfDay(start).toISOString(),
+          endDate: endOfDay(now).toISOString(),
+        };
+      }
+      case "custom": {
+        if (!customStartDate || !customEndDate) return {};
+        const start = new Date(`${customStartDate}T00:00:00`);
+        const end = new Date(`${customEndDate}T23:59:59.999`);
+        return {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        };
+      }
+      default:
+        return {};
+    }
+  };
+
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      const { startDate, endDate } = getDateRangeParams();
 
       const res = await getActivityLogs({
         page,
         limit: 20,
         entity: entityFilter !== "all" ? entityFilter.toUpperCase() : undefined,
         actorId: userFilter !== "all" ? userFilter : undefined,
+        startDate,
+        endDate,
       });
 
       setLogs(res.logs);
@@ -350,6 +416,22 @@ export default function AdminActivityLogs() {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
+                {dateRange === "custom" && (
+                  <div className="mt-3 grid grid-cols-1 gap-3">
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Entity Type */}
