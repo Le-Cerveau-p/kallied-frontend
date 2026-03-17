@@ -111,13 +111,7 @@ export default function AdminUserManagement() {
   >("STAFF");
 
   // Authorized email for OTP
-  const [authorizedEmail, setAuthorizedEmail] = useState(
-    "techcity025@gmail.com",
-  );
-  const approvedOtpRecipients = [
-    "aremupp@gmail.com",
-    "lecerveau.techcity@gmail.com",
-  ];
+  const [authorizedEmail, setAuthorizedEmail] = useState("");
 
   // Mock user data
   const [users, setUsers] = useState([]);
@@ -188,17 +182,10 @@ export default function AdminUserManagement() {
     setShowOTPDialog(true);
   };
 
-  const isApprovedRecipient = (email: string) =>
-    approvedOtpRecipients.includes(email.toLowerCase());
-
   const sendOtpNow = async () => {
     const email = otpRecipientEmail.trim().toLowerCase();
     if (!email) {
-      setOtpError("Please enter an approved email.");
-      return;
-    }
-    if (!isApprovedRecipient(email)) {
-      setToastMessage("Email entered is not approved.");
+      setOtpError("Please enter an email.");
       return;
     }
 
