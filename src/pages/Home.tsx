@@ -3,14 +3,17 @@ import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../components/NavBar";
 import Footer from "../components/Footer";
 import {
-  Shield,
-  Zap,
-  Lock,
-  Users,
+  Briefcase,
+  FileText,
+  BarChart3,
+  Truck,
+  Wrench,
+  Layers,
+  Handshake,
+  Monitor,
   CircleCheck,
   Star,
   ArrowRight,
-  Globe,
 } from "lucide-react";
 
 export default function Home() {
@@ -19,28 +22,52 @@ export default function Home() {
 
   const features = [
     {
-      icon: Shield,
-      title: "Integrated Security Systems",
+      icon: Briefcase,
+      title: "Consulting & Advisory Solutions",
       description:
-        "From surveillance and access control to monitoring infrastructure — secure environments built for reliability.",
+        "Strategic guidance on governance, policy, education and organizational strengthening.",
     },
     {
-      icon: Zap,
-      title: "ICT & Network Solutions",
+      icon: FileText,
+      title: "Research, Data & Insights",
       description:
-        "Robust IT infrastructure, communication systems and data management tailored to your organization.",
+        "Baseline studies, surveys and analytical reports that support confident decisions.",
     },
     {
-      icon: Lock,
-      title: "Power & Backup Support",
+      icon: BarChart3,
+      title: "Project Monitoring & Performance Analytics",
       description:
-        "Alternative energy and backup solutions to ensure operations never stop.",
+        "Monitoring frameworks, reviews and dashboards to track outcomes and improve.",
     },
     {
-      icon: Globe,
-      title: "Procurement & Technical Support",
+      icon: Truck,
+      title: "Procurement & Supply Chain Management",
       description:
-        "Transparent sourcing, logistics and technical consulting to deliver the right solutions at the right cost.",
+        "Vendor sourcing, logistics and compliance to deliver quality goods on time.",
+    },
+    {
+      icon: Wrench,
+      title: "Technical Implementation & Service Delivery",
+      description:
+        "Hands-on execution, field operations and service contracts that deliver.",
+    },
+    {
+      icon: Layers,
+      title: "Program & Development Management",
+      description:
+        "Program design, capacity building and reforms for inclusive growth.",
+    },
+    {
+      icon: Handshake,
+      title: "Partnerships & Multi-Sector Collaboration",
+      description:
+        "Coordinated work with governments, donors and communities for impact.",
+    },
+    {
+      icon: Monitor,
+      title: "Digital, ICT & Knowledge Systems",
+      description:
+        "Digital transformation, data systems and knowledge tools for efficiency.",
     },
   ];
 
@@ -482,3 +509,4 @@ export default function Home() {
     </div>
   );
 }
+
