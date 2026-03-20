@@ -32,11 +32,9 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const { setUser } = useAuth();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const googleReadyRef = useRef(false);
-  const googlePromptActiveRef = useRef(false);
+  const googleButtonRef = useRef(null);
 
   const handleAuthSuccess = (res) => {
     const token = res.access_token;
@@ -76,11 +74,9 @@ export default function Login() {
 
       google.accounts.id.initialize({
         client_id: googleClientId,
-        use_fedcm_for_prompt: true,
+        ux_mode: "popup",
+        auto_select: false,
         callback: async (response) => {
-          googlePromptActiveRef.current = false;
-          setGoogleLoading(false);
-
           try {
             if (!response?.credential) {
               throw new Error("No credential returned from Google");
@@ -104,7 +100,14 @@ export default function Login() {
         },
       });
 
-      googleReadyRef.current = true;
+      if (googleButtonRef.current) {
+        googleButtonRef.current.innerHTML = "";
+        google.accounts.id.renderButton(googleButtonRef.current, {
+          theme: "outline",
+          size: "large",
+          width: 360,
+        });
+      }
     };
 
     if (existing) {
@@ -170,56 +173,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleLogin = () => {
-    if (googleLoading) return;
-    if (!googleClientId) {
-      console.error("[google-login] Missing VITE_GOOGLE_CLIENT_ID");
-      setErrors({ api: "Google client ID is not configured." });
-      return;
-    }
-    console.log("googleClientId:", googleClientId);
-
-    const google = window?.google;
-
-    if (!googleReadyRef.current || !google?.accounts?.id) {
-      console.error("[google-login] GSI not ready", {
-        scriptLoaded: googleReadyRef.current,
-        hasGoogle: Boolean(google),
-      });
-
-      setErrors({ api: "Google Sign-In is not available yet. Try again." });
-      return;
-    }
-
-    if (googlePromptActiveRef.current) return;
-
-    googlePromptActiveRef.current = true;
-    setGoogleLoading(true);
-
-    google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed()) {
-        const reason = notification.getNotDisplayedReason();
-
-        console.warn("[google-login] prompt not displayed", reason);
-
-        setErrors({
-          api:
-            reason === "not_allowed"
-              ? "Google Sign-In blocked by browser settings or extensions."
-              : "Google Sign-In could not be displayed. Check OAuth origins.",
-        });
-
-        googlePromptActiveRef.current = false;
-        setGoogleLoading(false);
-      }
-
-      if (notification.isSkippedMoment() || notification.isDismissedMoment()) {
-        googlePromptActiveRef.current = false;
-        setGoogleLoading(false);
-      }
-    });
   };
 
   return (
@@ -345,28 +298,10 @@ export default function Login() {
           </div>
 
           {/* Google button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={googleLoading}
-            className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {googleLoading ? (
-              <>
-                <Loader size={20} className="animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                <img
-                  src="https://www.svgrepo.com/show/475656/google-color.svg"
-                  alt="Google"
-                  className="w-5 h-5"
-                />
-                Continue with Google
-              </>
-            )}
-          </button>
+          <div
+            ref={googleButtonRef}
+            className="w-full flex items-center justify-center"
+          />
 
           {/* Footer */}
           <p className="text-sm text-center mt-6">
