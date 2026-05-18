@@ -48,8 +48,8 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
     // { key: "features", name: "Features", href: "/features" },
     { key: "services", name: "Services", href: "/services" },
     { key: "about", name: "About Us", href: "/about" },
-    { key: "projects", name: "Projects & Experience", href: "/projects" },
-    { key: "clients", name: "Clients & Partners", href: "/partners" },
+    // { key: "projects", name: "Projects & Experience", href: "/projects" },
+    // { key: "clients", name: "Clients & Partners", href: "/partners" },
     { key: "contact", name: "Contact Us", href: "/contact" },
   ];
 
@@ -88,9 +88,7 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
                     : "text-gray-300 hover:text-white"
                 }`}
                 style={
-                  currentPage === link.key
-                    ? { backgroundColor: "#4169e1" }
-                    : {}
+                  currentPage === link.key ? { backgroundColor: "#4169e1" } : {}
                 }
                 onMouseEnter={(e) => {
                   if (currentPage !== link.key) {
@@ -180,9 +178,7 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
                   : "text-gray-300 hover:text-white"
               }`}
               style={
-                currentPage === link.key
-                  ? { backgroundColor: "#4169e1" }
-                  : {}
+                currentPage === link.key ? { backgroundColor: "#4169e1" } : {}
               }
               onTouchStart={(e) => {
                 if (currentPage !== link.key) {
