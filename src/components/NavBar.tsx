@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Menu, X } from "lucide-react";
 import { Button } from "../ui/button";
@@ -44,11 +44,13 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
   };
 
   const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "Features", href: "/features" },
-    { name: "Services", href: "/services" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
+    { key: "home", name: "Home", href: "/" },
+    // { key: "features", name: "Features", href: "/features" },
+    { key: "services", name: "Services", href: "/services" },
+    { key: "about", name: "About Us", href: "/about" },
+    { key: "projects", name: "Projects & Experience", href: "/projects" },
+    { key: "clients", name: "Clients & Partners", href: "/partners" },
+    { key: "contact", name: "Contact Us", href: "/contact" },
   ];
 
   return (
@@ -75,28 +77,28 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
           </div>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-1">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 to={link.href}
                 className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                  currentPage === link.name.toLowerCase()
+                  currentPage === link.key
                     ? "text-white"
                     : "text-gray-300 hover:text-white"
                 }`}
                 style={
-                  currentPage === link.name.toLowerCase()
+                  currentPage === link.key
                     ? { backgroundColor: "#4169e1" }
                     : {}
                 }
                 onMouseEnter={(e) => {
-                  if (currentPage !== link.name.toLowerCase()) {
+                  if (currentPage !== link.key) {
                     e.currentTarget.style.backgroundColor = "#4169e1";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (currentPage !== link.name.toLowerCase()) {
+                  if (currentPage !== link.key) {
                     e.currentTarget.style.backgroundColor = "transparent";
                   }
                 }}
@@ -107,7 +109,7 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-4">
             {!user ? (
               <>
                 <Link
@@ -144,7 +146,7 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-white p-2 rounded-lg hover:bg-[#4169e1] transition-colors duration-200"
@@ -158,7 +160,7 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden transition-all duration-300 ease-in-out ${
+        className={`lg:hidden transition-all duration-300 ease-in-out ${
           isMenuOpen
             ? "max-h-[calc(100vh-4rem)] opacity-100 overflow-y-auto"
             : "max-h-0 opacity-0 overflow-hidden"
@@ -173,22 +175,22 @@ export default function Navbar({ currentPage = "home" }: NavbarProps) {
               to={link.href}
               onClick={handleLinkClick}
               className={`block px-4 py-3 rounded-lg transition-all duration-200 ${
-                currentPage === link.name.toLowerCase()
+                currentPage === link.key
                   ? "text-white"
                   : "text-gray-300 hover:text-white"
               }`}
               style={
-                currentPage === link.name.toLowerCase()
+                currentPage === link.key
                   ? { backgroundColor: "#4169e1" }
                   : {}
               }
               onTouchStart={(e) => {
-                if (currentPage !== link.name.toLowerCase()) {
+                if (currentPage !== link.key) {
                   e.currentTarget.style.backgroundColor = "#4169e1";
                 }
               }}
               onTouchEnd={(e) => {
-                if (currentPage !== link.name.toLowerCase()) {
+                if (currentPage !== link.key) {
                   e.currentTarget.style.backgroundColor = "transparent";
                 }
               }}

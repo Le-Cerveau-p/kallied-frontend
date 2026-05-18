@@ -1,143 +1,88 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/NavBar";
 import Footer from "../components/Footer";
 import {
   Briefcase,
   FileText,
-  BarChart3,
   Truck,
   Wrench,
   Layers,
-  Handshake,
   Monitor,
   CircleCheck,
-  Star,
   ArrowRight,
 } from "lucide-react";
 
 export default function Home() {
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
   const navigate = useNavigate();
 
-  const features = [
+  const servicePillars = [
     {
       icon: Briefcase,
-      title: "Consulting & Advisory Solutions",
+      title: "Consulting and Advisory Services",
       description:
-        "Strategic guidance on governance, policy, education and organizational strengthening.",
+        "Professional consulting and technical advisory support for governance, institutional strengthening and operational improvement.",
     },
     {
       icon: FileText,
-      title: "Research, Data & Insights",
+      title: "Research and Monitoring & Evaluation",
       description:
-        "Baseline studies, surveys and analytical reports that support confident decisions.",
-    },
-    {
-      icon: BarChart3,
-      title: "Project Monitoring & Performance Analytics",
-      description:
-        "Monitoring frameworks, reviews and dashboards to track outcomes and improve.",
-    },
-    {
-      icon: Truck,
-      title: "Procurement & Supply Chain Management",
-      description:
-        "Vendor sourcing, logistics and compliance to deliver quality goods on time.",
-    },
-    {
-      icon: Wrench,
-      title: "Technical Implementation & Service Delivery",
-      description:
-        "Hands-on execution, field operations and service contracts that deliver.",
+        "Research, baseline studies, surveys, feasibility work and impact evaluation that support evidence-based decision-making.",
     },
     {
       icon: Layers,
-      title: "Program & Development Management",
+      title: "Capacity Building and Training",
       description:
-        "Program design, capacity building and reforms for inclusive growth.",
+        "Structured training and learning programmes that strengthen skills, leadership and institutional performance.",
     },
     {
-      icon: Handshake,
-      title: "Partnerships & Multi-Sector Collaboration",
+      icon: Wrench,
+      title: "Program Implementation and Technical Assistance",
       description:
-        "Coordinated work with governments, donors and communities for impact.",
+        "Implementation support, coordination services and technical assistance for development programmes and institutional reforms.",
+    },
+    {
+      icon: Truck,
+      title: "Procurement and Logistics Support",
+      description:
+        "Sourcing, purchasing, vendor management and logistics coordination delivered with efficiency and quality assurance.",
     },
     {
       icon: Monitor,
-      title: "Digital, ICT & Knowledge Systems",
+      title: "Digital and ICT Solutions",
       description:
-        "Digital transformation, data systems and knowledge tools for efficiency.",
+        "Technology-enabled tools and information systems that improve organizational efficiency, communication and service delivery.",
     },
   ];
 
   const steps = [
     {
       number: "01",
-      title: "Reach Out",
-      description: "Tell us about your project needs and challenges.",
+      title: "Understand the Need",
+      description: "We listen carefully to the client brief and clarify the expected outcomes.",
     },
     {
       number: "02",
-      title: "Assessment & Planning",
-      description:
-        "Our team reviews requirements and recommends practical solutions.",
+      title: "Design the Approach",
+      description: "We shape a practical plan that fits the mandate, scope and timeline.",
     },
     {
       number: "03",
-      title: "Deployment & Implementation",
-      description: "We deliver, install, and configure systems professionally.",
+      title: "Deliver the Work",
+      description: "Our team executes agreed activities with professionalism and accountability.",
     },
     {
       number: "04",
-      title: "Ongoing Support",
-      description:
-        "We provide continuous maintenance, monitoring and advisory support.",
+      title: "Review and Sustain",
+      description: "We document results, share lessons and support follow-up improvements.",
     },
   ];
 
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      role: "CEO, TechStart Inc",
-      content:
-        "The team at K-Allied provided excellent support and delivered exactly what we needed for our project.",
-      rating: 5,
-    },
-    {
-      name: "Michael Chen",
-      role: "CTO, DataFlow Systems",
-      content:
-        "Professional service, timely delivery and very dependable technical expertise.",
-      rating: 5,
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Product Manager, InnovateCo",
-      content:
-        "Our organization has seen significant improvement in efficiency since implementing their solutions.",
-      rating: 5,
-    },
-  ];
-
-  // Auto-rotate testimonials
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [testimonials.length]);
-
-  const scrollToSignup = () => {
-    navigate("/signup");
+  const scrollToProjects = () => {
+    navigate("/projects");
   };
 
   const scrollToServices = () => {
     navigate("/services");
-  };
-
-  const scrollToFeatures = () => {
-    navigate("/features");
   };
 
   const scrollToContact = () => {
@@ -168,24 +113,24 @@ export default function Home() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            Smart Solutions for
+            K-Allied Integrated Solutions
             <br />
             <span style={{ color: "#a7fc00" }}>
-              Security, ICT and Business Operations
+              Building People. Strengthening Institutions.
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-white/90 mb-10 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            We design and deploy practical, secure and reliable solutions that
-            help organizations operate safely, manage projects effectively and
-            achieve better results.
+            We provide consulting, research, capacity building, procurement and
+            program implementation support to government institutions,
+            development partners, NGOs and private organizations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
             <button
-              onClick={scrollToFeatures}
+              onClick={scrollToProjects}
               className="group px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center justify-center gap-2"
               style={{ backgroundColor: "#a7fc00", color: "#001f54" }}
             >
-              Explore Our Solutions
+              View Projects
               <ArrowRight
                 size={20}
                 className="group-hover:translate-x-1 transition-transform"
@@ -202,7 +147,7 @@ export default function Home() {
               }}
               onClick={scrollToServices}
             >
-              Learn More
+              Explore Services
             </button>
           </div>
 
@@ -210,39 +155,39 @@ export default function Home() {
           <div className="mt-16 flex flex-wrap items-center justify-center gap-8 text-white/70">
             <div className="flex items-center gap-2">
               <CircleCheck size={20} style={{ color: "#a7fc00" }} />
-              <span>Trusted execution</span>
+              <span>CAC-registered in Nigeria</span>
             </div>
             <div className="flex items-center gap-2">
               <CircleCheck size={20} style={{ color: "#a7fc00" }} />
-              <span>Professional service delivery</span>
+              <span>Government, NGO and private-sector clients</span>
             </div>
             <div className="flex items-center gap-2">
               <CircleCheck size={20} style={{ color: "#a7fc00" }} />
-              <span>Secure and compliant systems</span>
+              <span>Evidence-based and results-oriented</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-white" id="features">
+      {/* Service Pillars Section */}
+      <section className="py-20 bg-white" id="services">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2
               className="text-4xl md:text-5xl font-bold mb-4"
               style={{ color: "#001f54" }}
             >
-              Powerful Features for Your Success
+              Core Service Pillars
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Everything you need to build, manage, and scale your business with
-              confidence
+              Six practical services designed to strengthen institutions and
+              support measurable results.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {servicePillars.map((service, index) => {
+              const Icon = service.icon;
               return (
                 <div
                   key={index}
@@ -259,10 +204,10 @@ export default function Home() {
                     className="text-xl font-semibold mb-3"
                     style={{ color: "#001f54" }}
                   >
-                    {feature.title}
+                    {service.title}
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    {feature.description}
+                    {service.description}
                   </p>
                 </div>
               );
@@ -271,7 +216,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works Section */}
+      {/* How We Deliver Section */}
       <section
         className="py-20"
         style={{ backgroundColor: "#f8f9fa" }}
@@ -283,10 +228,10 @@ export default function Home() {
               className="text-4xl md:text-5xl font-bold mb-4"
               style={{ color: "#001f54" }}
             >
-              How It Works
+              How We Work
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Get started in minutes with our simple, streamlined process
+              A clear and practical process for delivering credible work.
             </p>
           </div>
 
@@ -324,84 +269,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-white" id="testimonials">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2
-              className="text-4xl md:text-5xl font-bold mb-4"
-              style={{ color: "#001f54" }}
-            >
-              Trusted by Thousands
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              See what our customers have to say about their experience
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="relative overflow-hidden">
-              {testimonials.map((testimonial, index) => (
-                <div
-                  key={index}
-                  className={`transition-all duration-500 ${
-                    index === activeTestimonial
-                      ? "opacity-100 relative"
-                      : "opacity-0 absolute inset-0 pointer-events-none"
-                  }`}
-                >
-                  <div
-                    className="p-8 md:p-12 rounded-2xl shadow-xl"
-                    style={{ backgroundColor: "#001f54" }}
-                  >
-                    {/* Star rating */}
-                    <div className="flex justify-center gap-1 mb-6">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={24}
-                          fill="#a7fc00"
-                          color="#a7fc00"
-                        />
-                      ))}
-                    </div>
-
-                    <p className="text-xl md:text-2xl text-white mb-8 text-center italic leading-relaxed">
-                      "{testimonial.content}"
-                    </p>
-
-                    <div className="text-center">
-                      <p className="font-semibold text-white text-lg">
-                        {testimonial.name}
-                      </p>
-                      <p className="text-white/70">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Testimonial indicators */}
-            <div className="flex justify-center gap-2 mt-8">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setActiveTestimonial(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    index === activeTestimonial ? "w-8" : ""
-                  }`}
-                  style={{
-                    backgroundColor:
-                      index === activeTestimonial ? "#a7fc00" : "#d1d5db",
-                  }}
-                  aria-label={`View testimonial ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Stats Section */}
       <section
         className="py-20"
@@ -413,22 +280,20 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
             {[
               {
-                number: "+30",
-                label:
-                  "Completed Projects Across public and private sector clients",
+                number: "CAC",
+                label: "Registered company in Nigeria",
+              },
+              {
+                number: "6",
+                label: "Core service pillars",
+              },
+              {
+                number: "7",
+                label: "Client categories served",
               },
               {
                 number: "100%",
-                label:
-                  "Client Satisfaction Focus Quality work and transparent communication",
-              },
-              {
-                number: "24/7",
-                label: "Professional technical assistance when needed",
-              },
-              {
-                number: "Growing Partnerships",
-                label: "Expanding across industries and sectors",
+                label: "Commitment to quality and accountability",
               },
             ].map((stat, index) => (
               <div key={index} className="text-white">
@@ -452,11 +317,12 @@ export default function Home() {
             className="text-4xl md:text-5xl font-bold mb-6"
             style={{ color: "#001f54" }}
           >
-            Ready to Discuss Your Project?
+            Ready to discuss your next project?
           </h2>
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-            Let’s work together to design secure, reliable and efficient
-            solutions that support your organization’s goals.
+            Let&apos;s work together to design practical, evidence-based
+            solutions that support institutional performance and development
+            impact.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
@@ -483,7 +349,7 @@ export default function Home() {
                 e.currentTarget.style.color = "#4169e1";
               }}
             >
-              Request Consultation
+              Request a Consultation
             </button>
           </div>
 

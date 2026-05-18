@@ -8,9 +8,10 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import DashboardRouter from "./pages/DashboardRouter";
-import Features from "./pages/Features";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import ProjectsExperiencePage from "./pages/ProjectsExperiencePage";
+import ClientsPartnersPage from "./pages/ClientsPartnersPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ClientProjectsPage from "./pages/client/ClientProjectsPage";
 import ClientChatThreadsPage from "./pages/client/ClientChatThreadsPage";
@@ -69,9 +70,11 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/signup" element={<Register />} />
-        <Route path="/features" element={<Features />} />
+        {/* <Route path="/features" element={<Features />} /> */}
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/projects" element={<ProjectsExperiencePage />} />
+        <Route path="/partners" element={<ClientsPartnersPage />} />
         <Route path="/contact" element={<ContactPage />} />
 
       {/* Protected (later) */}

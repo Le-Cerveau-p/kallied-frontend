@@ -45,27 +45,39 @@ export default function AboutPage() {
   const values = [
     {
       icon: Target,
-      title: "Purpose Led",
+      title: "Professionalism",
       description:
-        "We build solutions that solve critical real-life challenges in security, technology and infrastructure.",
+        "We maintain high standards in how we plan, communicate and deliver every assignment.",
     },
     {
       icon: Heart,
-      title: "Service Excellence",
+      title: "Integrity",
       description:
-        "We listen, understand and partner with our clients to deliver exactly what they need.",
+        "We act honestly, ethically and transparently in all client relationships and project work.",
     },
     {
       icon: Lightbulb,
-      title: "Practical Innovation",
+      title: "Innovation",
       description:
-        "We apply technology wisely — choosing solutions that work reliably in real environments.",
+        "We apply practical ideas and fit-for-purpose tools that improve how institutions work.",
+    },
+    {
+      icon: Users,
+      title: "Collaboration",
+      description:
+        "We work closely with clients, partners and stakeholders to deliver shared outcomes.",
     },
     {
       icon: Award,
-      title: "Integrity & Quality",
+      title: "Accountability",
       description:
-        "We deliver work we are proud of, built on honesty, professionalism and consistency.",
+        "We take ownership of our commitments and remain answerable for the quality of our work.",
+    },
+    {
+      icon: TrendingUp,
+      title: "Excellence",
+      description:
+        "We pursue consistent quality, continuous improvement and measurable results.",
     },
   ];
 
@@ -74,37 +86,37 @@ export default function AboutPage() {
       year: "2019",
       title: "Company Established",
       description:
-        "K-Allied was founded to provide reliable alternative solutions in security, ICT and infrastructure support.",
+        "K-Allied Integrated Solutions was established to provide practical consulting and service delivery support.",
     },
     {
       year: "2020",
-      title: "First Major Contracts",
+      title: "Public Sector Engagements",
       description:
-        "Delivered our earliest security and ICT deployment projects across government and private sector clients.",
+        "We began supporting government-facing assignments with research, advisory and implementation support.",
     },
     {
       year: "2021",
-      title: "Service Expansion",
+      title: "Research and Training Focus",
       description:
-        "Introduced power backup solutions, procurement support and specialized consulting.",
+        "We expanded our work in research, capacity building and evidence-based programme design.",
     },
     {
       year: "2022",
-      title: "Strategic Partnerships",
+      title: "Procurement and Logistics Support",
       description:
-        "Formed key partnerships to improve service capability and technical depth.",
+        "We strengthened our operational support services for delivery, sourcing and vendor coordination.",
     },
     {
       year: "2023",
-      title: "Project Diversification",
+      title: "Digital and ICT Support",
       description:
-        "Handled multi-disciplinary projects across security systems, ICT networks, energy support and procurement.",
+        "We deepened our technology-enabled solutions for data management and service delivery.",
     },
     {
       year: "2024",
-      title: "Strengthening Our Operations",
+      title: "Institutional Strengthening",
       description:
-        "Focused on refining processes, training teams and preparing for long-term growth.",
+        "We refined our processes and partnerships to support long-term development impact.",
     },
   ];
 
@@ -140,10 +152,10 @@ export default function AboutPage() {
   ];
 
   const stats = [
-    { number: "50K+", label: "Active Users" },
-    { number: "150+", label: "Countries" },
-    { number: "99.9%", label: "Uptime" },
-    { number: "24/7", label: "Support" },
+    { number: "CAC", label: "Registered in Nigeria" },
+    { number: "6", label: "Service pillars" },
+    { number: "7", label: "Client categories served" },
+    { number: "100%", label: "Commitment to quality" },
   ];
 
   const scrollToContact = () => {
@@ -178,18 +190,19 @@ export default function AboutPage() {
               className="text-4xl md:text-5xl font-bold mb-6"
               style={{ color: "#001f54" }}
             >
-              Building Trusted Solutions for
+              K-Allied Integrated Solutions
               <br />
               <span style={{ color: "#4169e1" }}>
-                Security, Technology and Infrastructure
+                Building People. Strengthening Institutions.
               </span>
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-              K-Allied Integrated Solutions delivers reliable, practical and
-              secure solutions across ICT, security systems, power, procurement
-              and infrastructure support services. We exist to help
-              organizations operate safer, smarter and more efficiently — with
-              solutions designed for real-world environments.
+              K-Allied Integrated Solutions is a multi-sector consulting and
+              service delivery firm committed to strengthening institutions,
+              improving systems and supporting sustainable development. We
+              provide professional services that help organizations deliver
+              effective programs, manage resources efficiently and achieve
+              measurable results.
             </p>
           </div>
         </div>
@@ -255,11 +268,9 @@ export default function AboutPage() {
                   Our Mission
                 </h2>
                 <p className="text-gray-600 leading-relaxed text-lg">
-                  Our mission is to provide dependable, innovative and
-                  affordable solutions that enhance safety, improve operations,
-                  and empower organizations across Africa and beyond. We aim to
-                  bridge gaps between technology, security, power and project
-                  delivery — ensuring businesses can focus on what matters most.
+                  To deliver practical, high-quality consulting and service
+                  solutions that strengthen institutions, improve performance
+                  and support sustainable development.
                 </p>
               </div>
             </div>
@@ -284,10 +295,9 @@ export default function AboutPage() {
                   Our Vision
                 </h2>
                 <p className="text-gray-600 leading-relaxed text-lg">
-                  To become a leading African solutions provider known for
-                  integrity, technical excellence and customer-focused delivery
-                  — creating safer and more efficient environments for
-                  businesses, governments and communities.
+                  To be a trusted partner in delivering professional
+                  consulting, research and implementation services that drive
+                  institutional excellence and development impact.
                 </p>
               </div>
             </div>

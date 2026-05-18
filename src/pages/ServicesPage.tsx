@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import Navbar from "../components/NavBar";
 import {
-  Lightbulb,
-  FileSearch,
   BarChart3,
   Package,
   FileCheck,
   Rocket,
-  Handshake,
   MonitorSmartphone,
-  Building2,
-  ShoppingCart,
   Briefcase,
 } from "lucide-react";
 import Footer from "../components/Footer";
@@ -47,128 +42,69 @@ export default function ServicesPage() {
 
   const services = [
     {
-      icon: Lightbulb,
-      title: "Consulting & Advisory Services",
+      icon: Briefcase,
+      title: "Consulting and Advisory Services",
       items: [
-        "Governance and public sector consulting",
-        "Public policy advisory",
-        "Education sector consulting",
-        "Social development advisory",
-        "Organizational strengthening and restructuring",
-        "Program and project design support",
-        "Systems improvement consulting",
-        "Institutional capacity-building services",
-      ],
-    },
-    {
-      icon: FileSearch,
-      title: "Research & Analytical Services",
-      items: [
-        "Baseline studies",
-        "Needs assessments",
-        "Surveys and data collection",
-        "Feasibility studies",
-        "Data analysis and statistical reporting",
-        "Monitoring and evaluation (M&E)",
-        "Impact assessments",
-        "Evidence-based reporting for government, NGOs, donors, and private clients",
+        "Strategic planning support",
+        "Policy and governance advisory",
+        "Organizational development support",
+        "Systems improvement for public and private institutions",
       ],
     },
     {
       icon: BarChart3,
-      title: "Project Performance & Decision-Support Services",
+      title: "Research and Monitoring & Evaluation",
       items: [
-        "Analytical studies and performance reviews",
-        "Project monitoring and performance audits",
-        "Data-driven reporting and dashboards",
-        "Decision-support analytics for policy and program implementation",
-      ],
-    },
-    {
-      icon: Package,
-      title: "Procurement & Supply Chain Services",
-      items: [
-        "Sourcing and purchasing of goods and equipment",
-        "Logistics and distribution support",
-        "Vendor identification and management",
-        "Quality assurance and compliance checks",
-        "Supply of materials for public, private, and development projects",
+        "Baseline studies and needs assessments",
+        "Surveys and data collection",
+        "Data analysis and reporting",
+        "Impact evaluation and evidence generation",
       ],
     },
     {
       icon: FileCheck,
-      title: "Contracting & Implementation Services",
+      title: "Capacity Building and Training",
       items: [
-        "Execution of service contracts",
-        "Project delivery and implementation support",
-        "Technical assistance for development programs",
-        "Provision of specialized technical services",
+        "Structured training programmes",
+        "Leadership and professional development",
+        "Institutional performance strengthening",
+        "Skills development for service delivery teams",
       ],
     },
     {
       icon: Rocket,
-      title: "Program & Development Management",
+      title: "Program Implementation and Technical Assistance",
       items: [
-        "Design and management of development programs",
-        "Institutional reform initiatives",
-        "Governance system strengthening",
-        "Community support and social impact programs",
-        "Capacity-building and training activities",
+        "Project coordination and implementation support",
+        "Technical assistance for development programmes",
+        "Performance monitoring and review",
+        "Sustainable delivery support",
       ],
     },
     {
-      icon: Handshake,
-      title: "Collaboration & Partnership Services",
+      icon: Package,
+      title: "Procurement and Logistics Support",
       items: [
-        "Joint project delivery with government agencies",
-        "Collaboration with donor organizations and development partners",
-        "Partnerships with NGOs and civil society groups",
-        "Multi-sector program implementation and technical assistance",
+        "Sourcing and purchasing",
+        "Vendor management and coordination",
+        "Supply chain and logistics support",
+        "Quality assurance and compliance",
       ],
     },
     {
       icon: MonitorSmartphone,
-      title: "Digital, ICT & Knowledge Management Services",
+      title: "Digital and ICT Solutions",
       items: [
-        "Digital transformation and ICT solutions",
-        "Data management systems and platforms",
-        "Communication and documentation support",
-        "Knowledge management and organizational learning systems",
-        "Technology-enabled consulting services",
-      ],
-    },
-    {
-      icon: Building2,
-      title: "Facilities, Equipment & Operational Support",
-      items: [
-        "Acquisition and leasing of facilities and equipment",
-        "Operation and maintenance of research, training, and consulting infrastructure",
-        "Provision of operational resources for project execution",
-      ],
-    },
-    {
-      icon: ShoppingCart,
-      title: "General Merchandise & Supplies",
-      items: [
-        "Supply of general goods and materials",
-        "Merchandise and contractual services supporting consulting, research, and procurement operations",
-      ],
-    },
-    {
-      icon: Briefcase,
-      title: "Other Related Business Services",
-      items: [
-        "Any lawful business activities that complement or enhance the company's consulting, research, procurement, or development-sector operations",
+        "Data systems development",
+        "Digital tools implementation",
+        "Information management support",
+        "Technology support for institutional operations",
       ],
     },
   ];
 
   const scrollToContact = () => {
     navigate("/contact");
-  };
-
-  const scrollToSignup = () => {
-    navigate("/signup");
   };
 
   return (
@@ -189,16 +125,15 @@ export default function ServicesPage() {
             }`}
           >
             <h1 className="text-4xl sm:text-5xl lg:text-6xl mb-6 leading-tight">
-              Our <span className="text-[#d4ed31]">Services</span>
+              Our <span className="text-[#d4ed31]">Service Pillars</span>
             </h1>
             <p className="text-xl sm:text-2xl text-blue-100 mb-8">
-              Comprehensive Solutions for Development, Consulting & Procurement
+              Practical consulting, research, training and implementation support
             </p>
             <p className="text-lg text-blue-200 max-w-3xl mx-auto">
-              K-ALLIED INTEGRATED SOLUTIONS LTD provides high-quality
-              consulting, research, procurement, and project implementation
-              services to government institutions, donor agencies, NGOs, and
-              private organizations.
+              K-Allied Integrated Solutions provides evidence-based services to
+              government institutions, development partners, NGOs and private
+              organizations.
             </p>
           </div>
         </div>
@@ -267,19 +202,19 @@ export default function ServicesPage() {
             }`}
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">
-              Ready to Transform Your Organization?
+              Ready to discuss your service needs?
             </h2>
             <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-              Partner with K-ALLIED INTEGRATED SOLUTIONS LTD for comprehensive
-              consulting, research, and development services tailored to your
+              Partner with K-Allied Integrated Solutions for consulting,
+              research, implementation and operational support tailored to your
               needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 className="px-8 py-4 bg-[#d4ed31] text-[#001f54] rounded-xl hover:bg-[#c5de22] transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
-                onClick={scrollToSignup}
+                onClick={scrollToContact}
               >
-                Get Started Today
+                View Contact Details
               </button>
               <button
                 className="px-8 py-4 bg-white/10 text-white border-2 border-white/30 rounded-xl hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"

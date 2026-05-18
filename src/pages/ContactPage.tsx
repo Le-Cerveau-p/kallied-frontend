@@ -257,11 +257,12 @@ export default function ContactPage() {
             className="text-5xl md:text-6xl font-bold mb-6"
             style={{ color: "#001f54" }}
           >
-            Contact <span style={{ color: "#4169e1" }}>Our Team</span>
+            Contact <span style={{ color: "#4169e1" }}>K-Allied</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Have a project, request or enquiry? Our team is ready to support you
-            with professional guidance, proposals and technical assistance.
+            Have a project, request or enquiry? K-Allied Integrated Solutions
+            is ready to support you with professional guidance, proposals and
+            technical assistance.
           </p>
         </div>
       </section>
@@ -281,7 +282,9 @@ export default function ContactPage() {
               <p className="text-gray-600 mb-8">
                 Send us a message and a member of our team will respond as soon
                 as possible. We handle project enquiries, support requests and
-                partnership opportunities.
+                partnership opportunities. K-Allied Integrated Solutions is a
+                CAC-registered consulting and service delivery firm based in
+                Nigeria.
               </p>
 
               <div className="space-y-6">
@@ -576,7 +579,8 @@ export default function ContactPage() {
               Our Office Location
             </h2>
             <p className="text-xl text-gray-600">
-              We operate across Nigeria and partner globally.
+              We operate across Nigeria and support government, development,
+              NGO and private-sector clients.
             </p>
           </div>
 
@@ -627,10 +631,10 @@ export default function ContactPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
               <div className="p-6 text-center">
                 <h4 className="font-semibold mb-2" style={{ color: "#001f54" }}>
-                  Appointments
+                  Company Registration
                 </h4>
                 <p className="text-gray-600">
-                  Visits are based on prior scheduling
+                  CAC-registered consulting and service delivery firm
                 </p>
               </div>
               <div className="p-6 text-center">

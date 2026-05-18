@@ -16,8 +16,9 @@ export default function Footer() {
               K-ALLIED SOLUTIONS
             </div>
             <p className="text-white/70">
-              Delivering reliable technology, security and project solutions
-              across Nigeria and beyond.
+              Building People. Strengthening Institutions. A CAC-registered
+              consulting and service delivery firm supporting government,
+              development, NGO and private-sector clients.
             </p>
           </div>
 
@@ -25,27 +26,18 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">Services</h4>
             <ul className="space-y-2 text-white/70">
               <li>
-                <Link
-                  to="/features"
-                  className="hover:text-white transition-colors"
-                >
-                  Solutions & Capabilities
+                <Link to="/services" className="hover:text-white transition-colors">
+                  Consulting & Advisory
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/contact"
-                  className="hover:text-white transition-colors"
-                >
-                  Consulting & Support
+                <Link to="/projects" className="hover:text-white transition-colors">
+                  Projects & Experience
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/services"
-                  className="hover:text-white transition-colors"
-                >
-                  Implementation
+                <Link to="/partners" className="hover:text-white transition-colors">
+                  Clients & Partners
                 </Link>
               </li>
             </ul>
@@ -55,21 +47,8 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-white/70">
               <li>
-                <Link
-                  to="/about"
-                  className="hover:text-white transition-colors"
-                >
+                <Link to="/about" className="hover:text-white transition-colors">
                   About Us
-                </Link>
-              </li>
-              {/* <li>
-                <Link to="#" className="hover:text-white transition-colors">
-                  Projects
-                </Link>
-              </li> */}
-              <li>
-                <Link to="#" className="hover:text-white transition-colors">
-                  Partners
                 </Link>
               </li>
             </ul>
@@ -79,27 +58,13 @@ export default function Footer() {
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-white/70">
               <li>
-                <Link
-                  to="/contact"
-                  className="hover:text-white transition-colors"
-                >
-                  Help & Resources
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/contact"
-                  className="hover:text-white transition-colors"
-                >
+                <Link to="/contact" className="hover:text-white transition-colors">
                   Contact Us
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/contact"
-                  className="hover:text-white transition-colors"
-                >
-                  Request Quote
+                <Link to="/contact" className="hover:text-white transition-colors">
+                  Request a Proposal
                 </Link>
               </li>
             </ul>
